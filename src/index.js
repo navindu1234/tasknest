@@ -1,13 +1,19 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import './index.css';
-import App from './App';
-import reportWebVitals from './reportWebVitals';
+import React from "react";
+import ReactDOM from "react-dom/client"; // Use ReactDOM.createRoot for React 18
+import "./index.css";
+import App from "./App";
+import reportWebVitals from "./reportWebVitals";
+import { UserProvider } from "./components/UserContext"; // Import UserProvider
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
+// Create a root for React 18
+const root = ReactDOM.createRoot(document.getElementById("root"));
+
+// Render the app wrapped with UserProvider
 root.render(
   <React.StrictMode>
-    <App />
+    <UserProvider>
+      <App />
+    </UserProvider>
   </React.StrictMode>
 );
 
