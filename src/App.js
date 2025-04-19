@@ -32,7 +32,7 @@ function App() {
         <Route path="/sellerprofile" element={<PrivateRoute><SellerProfile /></PrivateRoute>} />
         <Route path="/search/:category" element={<Search />} />
         <Route path="/order/:sellerId" element={<PrivateRoute><Order /></PrivateRoute>} />
-        
+
         {/* Add a catch-all route for GitHub Pages refresh issues */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
