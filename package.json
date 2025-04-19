@@ -1,5 +1,4 @@
 {
-  
   "name": "my-react-website",
   "version": "0.1.0",
   "private": true,
@@ -60,5 +59,4 @@
     "style-loader": "^4.0.0",
     "tailwindcss": "^4.0.8"
   }
-  
 }
