@@ -1,14 +1,14 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { HashRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Welcome from "./pages/Welcome";
-import Login from "./pages/login"; // Ensure correct case
-import Register from "./pages/RegUser"; // Import Registration Page
-import Home from "./pages/home"; // Ensure correct case
-import Profile from "./pages/profile"; // Ensure correct case
+import Login from "./pages/login";
+import Register from "./pages/RegUser";
+import Home from "./pages/home";
+import Profile from "./pages/profile";
 import Search from "./pages/search";
 import SellerLogin from "./pages/sellerlogin";
 import SellerProfile from "./pages/sellerprofile";
 import SellerReg from "./pages/sellerreg";
-import Order from "./pages/order"; // Import the Order component
+import Order from "./pages/order";
 
 // Private Route Component for Authentication
 function PrivateRoute({ children }) {
@@ -22,16 +22,19 @@ function App() {
         {/* Public Routes */}
         <Route path="/" element={<Welcome />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} /> {/* Registration Route */}
-        <Route path="/sellerlogin" element={<SellerLogin />} /> {/* Seller Login Route */}
-        <Route path="/sellerreg" element={<SellerReg />} /> {/* Seller Registration Route */}
+        <Route path="/register" element={<Register />} />
+        <Route path="/sellerlogin" element={<SellerLogin />} />
+        <Route path="/sellerreg" element={<SellerReg />} />
 
         {/* Private Routes */}
         <Route path="/home" element={<PrivateRoute><Home /></PrivateRoute>} />
         <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
-        <Route path="/sellerprofile" element={<PrivateRoute><SellerProfile /></PrivateRoute>} /> {/* Seller Profile Route */}
-        <Route path="/search/:category" element={<Search />} /> {/* Search Route */}
-        <Route path="/order/:sellerId" element={<PrivateRoute><Order /></PrivateRoute>} /> {/* Order Route */}
+        <Route path="/sellerprofile" element={<PrivateRoute><SellerProfile /></PrivateRoute>} />
+        <Route path="/search/:category" element={<Search />} />
+        <Route path="/order/:sellerId" element={<PrivateRoute><Order /></PrivateRoute>} />
+        
+        {/* Add a catch-all route for GitHub Pages refresh issues */}
+        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>
   );

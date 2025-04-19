@@ -18,10 +18,14 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
 const auth = getAuth(app);
-const db = getFirestore(app); // Correct Firestore initialization
-const storage = getStorage(app); // Correct Storage initialization
+const db = getFirestore(app);
+const storage = getStorage(app);
+
+// Initialize Analytics only if in client-side and measurementId exists
+if (typeof window !== 'undefined' && firebaseConfig.measurementId) {
+  getAnalytics(app);
+}
 
 // Export instances for use in other files
 export { app, auth, db, storage };

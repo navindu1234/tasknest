@@ -9,7 +9,7 @@ function Chatbot({ isOpen, onClose }) {
   ]);
   const [input, setInput] = useState("");
   const [sellers, setSellers] = useState([]);
-  const [categories, setCategories] = useState([
+  const categories = [
     "House Cleaning",
     "Garage Labor",
     "Electrician",
@@ -21,7 +21,7 @@ function Chatbot({ isOpen, onClose }) {
     "Car Repairs and Maintenance",
     "Cooking Services",
     "Home Renovation Services",
-  ]);
+  ];
 
   useEffect(() => {
     const fetchSellers = async () => {
@@ -82,6 +82,12 @@ ${matchedSellers
     return "I'm here to help! You can ask me about available services and sellers.";
   };
 
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter") {
+      sendMessage();
+    }
+  };
+
   const sendMessage = () => {
     if (!input.trim()) return;
 
@@ -126,9 +132,13 @@ ${matchedSellers
           className="flex-grow p-2 border rounded-l-lg outline-none"
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          onKeyPress={handleKeyPress}
           placeholder="Type a message..."
         />
-        <button onClick={sendMessage} className="bg-green-600 text-white p-2 rounded-r-lg">
+        <button 
+          onClick={sendMessage} 
+          className="bg-green-600 text-white p-2 rounded-r-lg hover:bg-green-700 transition-colors"
+        >
           <FiSend size={20} />
         </button>
       </div>

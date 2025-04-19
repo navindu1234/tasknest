@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { db } from '../components/firebase';
 import { useLocation } from 'react-router-dom';
 import { collection, query, where, getDocs, updateDoc, doc } from "firebase/firestore";
-import { Container, Typography, Grid, Card, CardContent, Button, Box } from '@mui/material';
+import { Typography, Grid, Card, CardContent, Button, Box } from '@mui/material';
 
 const SellerProfile = () => {
   const location = useLocation();
