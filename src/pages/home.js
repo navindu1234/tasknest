@@ -4,11 +4,11 @@ import { Carousel } from "react-responsive-carousel";
 import "react-responsive-carousel/lib/styles/carousel.min.css";
 import { FiMessageCircle } from "react-icons/fi";
 import Navbar from "../components/navbar";
-import Chatbot from "../components/chatbot"; // Import Chatbot component
+import Chatbot from "../components/chatbot";
 
 function Home() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [chatOpen, setChatOpen] = useState(false); // State for chatbot visibility
+  const [chatOpen, setChatOpen] = useState(false);
 
   const categories = [
     "House Cleaning",
@@ -24,20 +24,24 @@ function Home() {
     "Home Renovation Services",
   ];
 
+  // ✅ Use PUBLIC_URL for static image paths
   const categoryImages = [
-    "/image1.png",
-    "/image2.png",
-    "/image3.png",
-    "/image4.png",
-    "/image5.png",
-    "/image6.png",
-    "/image7.png",
-    "/image8.png",
-    "/image9.png",
-    "/image10.png",
+    `${process.env.PUBLIC_URL}/image1.png`,
+    `${process.env.PUBLIC_URL}/image2.png`,
+    `${process.env.PUBLIC_URL}/image3.png`,
+    `${process.env.PUBLIC_URL}/image4.png`,
+    `${process.env.PUBLIC_URL}/image5.png`,
+    `${process.env.PUBLIC_URL}/image6.png`,
+    `${process.env.PUBLIC_URL}/image7.png`,
+    `${process.env.PUBLIC_URL}/image8.png`,
+    `${process.env.PUBLIC_URL}/image9.png`,
+    `${process.env.PUBLIC_URL}/image10.png`,
   ];
 
-  const sliderImages = ["/slider1.jpeg", "/slider2.jpeg"];
+  const sliderImages = [
+    `${process.env.PUBLIC_URL}/slider1.jpeg`,
+    `${process.env.PUBLIC_URL}/slider2.jpeg`,
+  ];
 
   const filteredCategories = categories.filter((category) =>
     category.toLowerCase().includes(searchQuery.toLowerCase())
@@ -46,8 +50,8 @@ function Home() {
   return (
     <div className="bg-gradient-to-b from-green-500 to-green-800 min-h-screen text-white">
       <Navbar />
+
       <div className="container mx-auto py-8 px-4">
-        
         {/* 🔍 Search Bar */}
         <div className="flex justify-center items-center mb-6">
           <input
@@ -94,7 +98,11 @@ function Home() {
           >
             {sliderImages.map((image, index) => (
               <div key={index} className="relative flex justify-center items-center">
-                <img src={image} alt={`slider ${index + 1}`} className="rounded-lg shadow-lg w-full h-72 object-cover" />
+                <img
+                  src={image}
+                  alt={`slider ${index + 1}`}
+                  className="rounded-lg shadow-lg w-full h-72 object-cover"
+                />
               </div>
             ))}
           </Carousel>
