@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, db } from "../components/firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs, limit } from "firebase/firestore";
 import { FaSpinner } from "react-icons/fa";
 
 const Login = () => {
@@ -12,11 +12,11 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const loginUser = async (e) => {
+  const loginUser = useCallback(async (e) => {
     e.preventDefault();
     setError("");
     
-    if (!username || !password) {
+    if (!username.trim() || !password.trim()) {
       setError("Please fill in all fields");
       return;
     }
@@ -24,51 +24,75 @@ const Login = () => {
     setLoading(true);
 
     try {
-      // First find the user document by username to get the email
       const usersRef = collection(db, "users");
-      const q = query(usersRef, where("username", "==", username));
+      const q = query(
+        usersRef, 
+        where("username", "==", username.trim().toLowerCase()),
+        limit(1)
+      );
+      
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
-        setError("User not found");
-        setLoading(false);
-        return;
+        throw new Error("User not found");
       }
 
       const userDoc = querySnapshot.docs[0];
       const userData = userDoc.data();
-      const userEmail = userData.email;
-
-      // Sign in with email and password
-      await signInWithEmailAndPassword(auth, userEmail, password);
       
-      // Store basic user data in localStorage
-      localStorage.setItem("user", JSON.stringify({
+      if (!userData.email) {
+        throw new Error("Invalid user account");
+      }
+
+      await signInWithEmailAndPassword(auth, userData.email, password.trim());
+      
+      const userToStore = {
         uid: userDoc.id,
         username: userData.username,
         email: userData.email,
         fullName: userData.fullName || userData.username
-      }));
-
+      };
+      
+      localStorage.setItem("user", JSON.stringify(userToStore));
       navigate("/profile");
     } catch (error) {
       console.error("Login error:", error);
+      let errorMessage = "Login failed. Please try again";
+      
       switch (error.code) {
         case "auth/wrong-password":
-          setError("Invalid password");
+          errorMessage = "Invalid password";
           break;
         case "auth/user-not-found":
-          setError("User not found");
+          errorMessage = "User not found";
           break;
         case "auth/too-many-requests":
-          setError("Too many attempts. Try again later");
+          errorMessage = "Too many attempts. Try again later";
           break;
+        case "auth/network-request-failed":
+          errorMessage = "Network error. Check your connection";
+          break;
+        // Add default case to handle other error types
         default:
-          setError("Login failed. Please try again");
+          // Use the message from thrown Error objects
+          if (error instanceof Error && error.message) {
+            errorMessage = error.message;
+          }
+          break;
       }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
+  }, [username, password, navigate]);
+
+  const handleUsernameChange = (e) => {
+    setUsername(e.target.value);
+  };
+
+  const handlePasswordChange = (e) => {
+    setPassword(e.target.value);
   };
 
   return (
@@ -95,8 +119,10 @@ const Login = () => {
               type="text"
               placeholder="Enter your username"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={handleUsernameChange}
               className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              disabled={loading}
+              autoComplete="username"
             />
           </div>
 
@@ -109,15 +135,18 @@ const Login = () => {
               type="password"
               placeholder="Enter your password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={handlePasswordChange}
               className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              disabled={loading}
+              autoComplete="current-password"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition duration-300 flex items-center justify-center"
+            className={`w-full ${loading ? 'bg-green-500' : 'bg-green-600'} text-white py-3 rounded-lg hover:bg-green-700 transition duration-300 flex items-center justify-center`}
+            aria-busy={loading}
           >
             {loading ? (
               <>
@@ -134,6 +163,7 @@ const Login = () => {
               type="button"
               className="text-green-600 hover:underline text-sm"
               onClick={() => navigate("/forgot-password")}
+              disabled={loading}
             >
               Forgot Password?
             </button>
@@ -146,6 +176,7 @@ const Login = () => {
                 type="button"
                 className="text-green-600 font-semibold hover:underline"
                 onClick={() => navigate("/register")}
+                disabled={loading}
               >
                 Sign Up
               </button>
@@ -157,4 +188,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default React.memo(Login);
