@@ -24,7 +24,7 @@ function Home() {
     "Home Renovation Services",
   ];
 
-  // ✅ Use PUBLIC_URL for static image paths
+  //  Use PUBLIC_URL for static image paths
   const categoryImages = [
     `${process.env.PUBLIC_URL}/image1.png`,
     `${process.env.PUBLIC_URL}/image2.png`,
@@ -52,7 +52,7 @@ function Home() {
       <Navbar />
 
       <div className="container mx-auto py-8 px-4">
-        {/* 🔍 Search Bar */}
+        {/*  Search Bar */}
         <div className="flex justify-center items-center mb-6">
           <input
             type="text"
@@ -66,7 +66,7 @@ function Home() {
           </button>
         </div>
 
-        {/* 🔎 Search Results */}
+        {/*  Search Results */}
         {searchQuery && (
           <div className="bg-white text-black p-4 rounded-lg shadow-lg">
             {filteredCategories.length > 0 ? (
@@ -86,7 +86,7 @@ function Home() {
           </div>
         )}
 
-        {/* 🎞️ Image Slider */}
+        {/*  Image Slider */}
         <div className="max-w-4xl mx-auto mt-6">
           <Carousel
             showThumbs={false}
@@ -108,7 +108,7 @@ function Home() {
           </Carousel>
         </div>
 
-        {/* 🏷️ Service Categories */}
+        {/*  Service Categories */}
         <h2 className="text-3xl font-bold text-center mt-12">Explore Categories</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mt-6 px-4">
           {categories.map((category, index) => (
@@ -128,7 +128,7 @@ function Home() {
         </div>
       </div>
 
-      {/* 💬 Chat with AI Button */}
+      {/*  Chat with AI Button */}
       <button
         onClick={() => setChatOpen(true)}
         className="fixed bottom-6 right-6 bg-white text-green-600 p-4 rounded-full shadow-lg hover:bg-green-100 flex items-center space-x-2"
@@ -137,7 +137,7 @@ function Home() {
         <span className="hidden md:inline font-bold">Chat with AI</span>
       </button>
 
-      {/* 🧠 AI Chatbot Component */}
+      {/* AI Chatbot Component */}
       <Chatbot isOpen={chatOpen} onClose={() => setChatOpen(false)} />
     </div>
   );
