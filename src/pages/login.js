@@ -4,6 +4,21 @@ import { auth, db } from "../components/firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { collection, query, where, getDocs, limit } from "firebase/firestore";
 import { FaSpinner } from "react-icons/fa";
+import { motion } from "framer-motion";
+
+// Category images for animated background
+const categoryImages = [
+  `${process.env.PUBLIC_URL}/image1.png`,
+  `${process.env.PUBLIC_URL}/image2.png`,
+  `${process.env.PUBLIC_URL}/image3.png`,
+  `${process.env.PUBLIC_URL}/image4.png`,
+  `${process.env.PUBLIC_URL}/image5.png`,
+  `${process.env.PUBLIC_URL}/image6.png`,
+  `${process.env.PUBLIC_URL}/image7.png`,
+  `${process.env.PUBLIC_URL}/image8.png`,
+  `${process.env.PUBLIC_URL}/image9.png`,
+  `${process.env.PUBLIC_URL}/image10.png`,
+];
 
 const Login = () => {
   const [username, setUsername] = useState("");
@@ -15,7 +30,7 @@ const Login = () => {
   const loginUser = useCallback(async (e) => {
     e.preventDefault();
     setError("");
-    
+
     if (!username.trim() || !password.trim()) {
       setError("Please fill in all fields");
       return;
@@ -26,11 +41,11 @@ const Login = () => {
     try {
       const usersRef = collection(db, "users");
       const q = query(
-        usersRef, 
+        usersRef,
         where("username", "==", username.trim().toLowerCase()),
         limit(1)
       );
-      
+
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
@@ -39,26 +54,26 @@ const Login = () => {
 
       const userDoc = querySnapshot.docs[0];
       const userData = userDoc.data();
-      
+
       if (!userData.email) {
         throw new Error("Invalid user account");
       }
 
       await signInWithEmailAndPassword(auth, userData.email, password.trim());
-      
+
       const userToStore = {
         uid: userDoc.id,
         username: userData.username,
         email: userData.email,
         fullName: userData.fullName || userData.username
       };
-      
+
       localStorage.setItem("user", JSON.stringify(userToStore));
       navigate("/profile");
     } catch (error) {
       console.error("Login error:", error);
       let errorMessage = "Login failed. Please try again";
-      
+
       switch (error.code) {
         case "auth/wrong-password":
           errorMessage = "Invalid password";
@@ -72,37 +87,52 @@ const Login = () => {
         case "auth/network-request-failed":
           errorMessage = "Network error. Check your connection";
           break;
-        // Add default case to handle other error types
         default:
-          // Use the message from thrown Error objects
           if (error instanceof Error && error.message) {
             errorMessage = error.message;
           }
           break;
       }
-      
+
       setError(errorMessage);
     } finally {
       setLoading(false);
     }
   }, [username, password, navigate]);
 
-  const handleUsernameChange = (e) => {
-    setUsername(e.target.value);
-  };
-
-  const handlePasswordChange = (e) => {
-    setPassword(e.target.value);
-  };
-
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-green-500 to-green-700 p-4">
-      <div className="bg-white rounded-xl shadow-lg w-full max-w-md overflow-hidden">
-        <div className="bg-green-600 p-6 text-white text-center">
+    <div className="relative min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-green-500 to-green-700 overflow-hidden">
+      {/* Background TASKNEST Text */}
+      <h1 className="absolute text-[200px] font-extrabold text-green-300 opacity-20 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 select-none">
+        TASKNEST
+      </h1>
+
+      {/* Animated Image Grid */}
+      <div className="absolute inset-0 grid grid-cols-5 grid-rows-2 gap-4 p-10 opacity-40">
+        {categoryImages.map((src, index) => (
+          <motion.div
+            key={index}
+            className="w-48 h-48 bg-white rounded-2xl shadow-2xl overflow-hidden border-4 border-green-300 flex items-center justify-center"
+            animate={{ y: [0, -20, 0] }}
+            transition={{
+              duration: 4,
+              repeat: Infinity,
+              repeatType: "reverse",
+              delay: index * 0.2,
+            }}
+          >
+            <img src={src} alt={`Category ${index + 1}`} className="w-full h-full object-cover" />
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Login Form */}
+      <div className="relative z-10 bg-white bg-opacity-95 p-8 rounded-xl shadow-lg w-full max-w-md border-4 border-green-400">
+        <div className="bg-green-600 p-6 text-white text-center rounded-t-xl">
           <h2 className="text-3xl font-bold">Welcome Back</h2>
           <p className="mt-2">Sign in to your account</p>
         </div>
-        
+
         <form onSubmit={loginUser} className="p-6">
           {error && (
             <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
@@ -117,12 +147,12 @@ const Login = () => {
             <input
               id="username"
               type="text"
-              placeholder="Enter your username"
               value={username}
-              onChange={handleUsernameChange}
+              onChange={(e) => setUsername(e.target.value)}
               className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
               disabled={loading}
               autoComplete="username"
+              placeholder="Enter your username"
             />
           </div>
 
@@ -133,12 +163,12 @@ const Login = () => {
             <input
               id="password"
               type="password"
-              placeholder="Enter your password"
               value={password}
-              onChange={handlePasswordChange}
+              onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
               disabled={loading}
               autoComplete="current-password"
+              placeholder="Enter your password"
             />
           </div>
 
@@ -146,7 +176,6 @@ const Login = () => {
             type="submit"
             disabled={loading}
             className={`w-full ${loading ? 'bg-green-500' : 'bg-green-600'} text-white py-3 rounded-lg hover:bg-green-700 transition duration-300 flex items-center justify-center`}
-            aria-busy={loading}
           >
             {loading ? (
               <>

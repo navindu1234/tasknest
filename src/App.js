@@ -1,4 +1,5 @@
 import { HashRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import Welcome from "./pages/Welcome";
 import Login from "./pages/login";
 import Register from "./pages/RegUser";
@@ -11,32 +12,66 @@ import SellerReg from "./pages/sellerreg";
 import Order from "./pages/order";
 
 // Private Route Component for Authentication
-function PrivateRoute({ children }) {
-  return localStorage.getItem("isAuthenticated") ? children : <Navigate to="/login" />;
+function PrivateRoute({ children, sellerOnly = false }) {
+  const { currentUser, loading } = useAuth();
+
+  if (loading) {
+    return <div>Loading...</div>; // Or a loading spinner
+  }
+
+  if (!currentUser) {
+    return <Navigate to="/login" />;
+  }
+
+  if (sellerOnly && currentUser.userType !== 'seller') {
+    return <Navigate to="/home" />;
+  }
+
+  return children;
 }
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<Welcome />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/sellerlogin" element={<SellerLogin />} />
-        <Route path="/sellerreg" element={<SellerReg />} />
+    <AuthProvider>
+      <Router>
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<Welcome />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/sellerlogin" element={<SellerLogin />} />
+          <Route path="/sellerreg" element={<SellerReg />} />
+          <Route path="/search/:category" element={<Search />} />
 
-        {/* Private Routes */}
-        <Route path="/home" element={<PrivateRoute><Home /></PrivateRoute>} />
-        <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
-        <Route path="/sellerprofile" element={<PrivateRoute><SellerProfile /></PrivateRoute>} />
-        <Route path="/search/:category" element={<Search />} />
-        <Route path="/order/:sellerId" element={<PrivateRoute><Order /></PrivateRoute>} />
+          {/* Private Routes - Regular Users */}
+          <Route path="/home" element={
+            <PrivateRoute>
+              <Home />
+            </PrivateRoute>
+          } />
+          <Route path="/profile" element={
+            <PrivateRoute>
+              <Profile />
+            </PrivateRoute>
+          } />
 
-        {/* Add a catch-all route for GitHub Pages refresh issues */}
-        <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
-    </Router>
+          {/* Private Routes - Sellers Only */}
+          <Route path="/sellerprofile" element={
+            <PrivateRoute sellerOnly>
+              <SellerProfile />
+            </PrivateRoute>
+          } />
+          <Route path="/order/:sellerId" element={
+            <PrivateRoute>
+              <Order />
+            </PrivateRoute>
+          } />
+
+          {/* Add a catch-all route */}
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
 }
 

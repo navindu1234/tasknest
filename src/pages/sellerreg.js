@@ -5,30 +5,61 @@ import { collection, addDoc } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 
 const categories = [
-  'House Cleaning', 'Garage Labor', 'Electrician', 'Gardening Services',
-  'Pest Control', 'Moving and Packing Services', 'Laundry and Ironing Services',
-  'House Painting Services', 'Car Repairs and Maintenance', 'Cooking Services',
+  'House Cleaning',
+  'Garage Labor',
+  'Electrician',
+  'Gardening Services',
+  'Pest Control',
+  'Moving and Packing Services',
+  'Laundry and Ironing Services',
+  'House Painting Services',
+  'Car Repairs and Maintenance',
+  'Cooking Services',
   'Home Renovation Services',
 ];
 
+const experienceLevels = [
+  '<1 year',
+  '1-3 years',
+  '3-5 years',
+  '5+ years',
+];
+
+const certificationOptions = ['Yes', 'No'];
+const workTypeOptions = ['Individual', 'Team'];
+
 const SellerReg = () => {
   const [name, setName] = useState('');
-  const [service, setService] = useState('');
+  const [serviceDescription, setServiceDescription] = useState('');
+  const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [education, setEducation] = useState('');
   const [age, setAge] = useState('');
   const [city, setCity] = useState('');
+  const [preferredLocation, setPreferredLocation] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(categories[0]);
+  const [selectedExperience, setSelectedExperience] = useState(experienceLevels[0]);
+  const [hasCertifications, setHasCertifications] = useState(certificationOptions[1]);
+  const [workType, setWorkType] = useState(workTypeOptions[0]);
   const [profileImage, setProfileImage] = useState(null);
   const [coverImage, setCoverImage] = useState(null);
+  const [certificationImage, setCertificationImage] = useState(null);
   const navigate = useNavigate();
 
-  const handleImageChange = (event, isProfile) => {
+  const handleImageChange = (event, imageType) => {
     const file = event.target.files[0];
-    if (isProfile) {
-      setProfileImage(file);
-    } else {
-      setCoverImage(file);
+    switch(imageType) {
+      case 'profile':
+        setProfileImage(file);
+        break;
+      case 'cover':
+        setCoverImage(file);
+        break;
+      case 'certification':
+        setCertificationImage(file);
+        break;
+      default:
+        break;
     }
   };
 
@@ -45,7 +76,8 @@ const SellerReg = () => {
   };
 
   const registerSeller = async () => {
-    if (!name || !service || !address || !education || !age || !city) {
+    if (!name || !serviceDescription || !phone || !address || 
+        !education || !age || !city || !preferredLocation) {
       alert('Please fill in all fields');
       return;
     }
@@ -53,17 +85,26 @@ const SellerReg = () => {
     const uniqueCode = Math.floor(10000 + Math.random() * 90000).toString();
     const profileImageUrl = await uploadImageToStorage(profileImage);
     const coverImageUrl = await uploadImageToStorage(coverImage);
+    const certificationImageUrl = hasCertifications === 'Yes' 
+      ? await uploadImageToStorage(certificationImage)
+      : '';
 
     try {
       await addDoc(collection(db, "services"), {
         name,
-        service,
+        serviceDescription,
+        phone,
         category: selectedCategory,
         uniqueCode,
         address,
         education,
         age,
         city,
+        experience: selectedExperience,
+        hasCertifications,
+        certificationImage: certificationImageUrl,
+        workType,
+        preferredLocation,
         profileImage: profileImageUrl,
         coverImage: coverImageUrl,
         timestamp: new Date(),
@@ -78,42 +119,190 @@ const SellerReg = () => {
   };
 
   return (
-    <div className="bg-gradient-to-b from-green-500 to-green-800 min-h-screen flex justify-center items-center text-white p-6">
-      <div className="bg-white p-8 rounded-3xl shadow-lg w-full max-w-lg text-center text-gray-800">
-        <h2 className="text-3xl font-bold text-green-600 mb-6">Become a Seller</h2>
+    <div className="min-h-screen bg-gradient-to-b from-blue-900 via-blue-800 to-blue-700">
+      <div className="bg-blue-900 text-white p-4 shadow-md">
+        <h1 className="text-xl font-bold">Become a Seller</h1>
+      </div>
 
-        <div className="flex justify-between mb-6">
-          <div className="flex flex-col items-center">
-            <input type="file" onChange={(e) => handleImageChange(e, true)} className="mb-2" />
-            {profileImage && <img src={URL.createObjectURL(profileImage)} alt="Profile" className="h-24 w-24 rounded-full border-4 border-green-500 shadow-md" />}
-          </div>
-          <div className="flex flex-col items-center">
-            <input type="file" onChange={(e) => handleImageChange(e, false)} className="mb-2" />
-            {coverImage && <img src={URL.createObjectURL(coverImage)} alt="Cover" className="h-24 w-24 rounded-lg border-4 border-green-500 shadow-md" />}
+      <div className="p-5">
+        <h2 className="text-2xl font-bold text-white mb-5">Seller Registration</h2>
+
+        {/* Image Upload Section */}
+        <div className="bg-blue-800 rounded-xl p-4 mb-5 shadow-lg">
+          <h3 className="text-lg font-medium text-white mb-3">Upload Your Photos</h3>
+          <div className="flex justify-around">
+            <div className="flex flex-col items-center">
+              <button 
+                onClick={() => document.getElementById('profileInput').click()}
+                className="bg-blue-700 text-white px-4 py-2 rounded-lg mb-2"
+              >
+                Profile Photo
+              </button>
+              <input 
+                id="profileInput"
+                type="file" 
+                onChange={(e) => handleImageChange(e, 'profile')} 
+                className="hidden" 
+              />
+              {profileImage && (
+                <img 
+                  src={URL.createObjectURL(profileImage)} 
+                  alt="Profile" 
+                  className="h-20 w-20 rounded-lg border-2 border-blue-300" 
+                />
+              )}
+            </div>
+            <div className="flex flex-col items-center">
+              <button 
+                onClick={() => document.getElementById('coverInput').click()}
+                className="bg-blue-700 text-white px-4 py-2 rounded-lg mb-2"
+              >
+                Cover Photo
+              </button>
+              <input 
+                id="coverInput"
+                type="file" 
+                onChange={(e) => handleImageChange(e, 'cover')} 
+                className="hidden" 
+              />
+              {coverImage && (
+                <img 
+                  src={URL.createObjectURL(coverImage)} 
+                  alt="Cover" 
+                  className="h-20 w-20 rounded-lg border-2 border-blue-300" 
+                />
+              )}
+            </div>
           </div>
         </div>
 
-        {[{ value: name, setter: setName, placeholder: "Name" },
-          { value: service, setter: setService, placeholder: "Service" },
-          { value: address, setter: setAddress, placeholder: "Address" },
-          { value: education, setter: setEducation, placeholder: "Educational Qualifications" },
-          { value: age, setter: setAge, placeholder: "Age" },
-          { value: city, setter: setCity, placeholder: "City" }]
-          .map((input, index) => (
-            <input key={index} type="text" value={input.value} onChange={(e) => input.setter(e.target.value)}
-              placeholder={input.placeholder} className="w-full p-3 rounded-lg border border-green-300 mb-4 text-lg" />
-        ))}
-
-        <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)}
-          className="w-full p-3 rounded-lg border border-green-300 mb-6 text-lg">
-          {categories.map((category) => (
-            <option key={category} value={category}>{category}</option>
+        {/* Personal Information Section */}
+        <div className="bg-blue-800 rounded-xl p-4 mb-5 shadow-lg">
+          <h3 className="text-lg font-medium text-white mb-3">Personal Information</h3>
+          {[
+            { value: name, setter: setName, placeholder: "Full Name", icon: "👤" },
+            { value: serviceDescription, setter: setServiceDescription, placeholder: "Service Description", icon: "📝" },
+            { value: phone, setter: setPhone, placeholder: "Telephone Number", icon: "📱", type: "tel" },
+            { value: address, setter: setAddress, placeholder: "Address", icon: "📍" },
+            { value: education, setter: setEducation, placeholder: "Education", icon: "🎓" },
+            { value: age, setter: setAge, placeholder: "Age", icon: "🎂" },
+            { value: city, setter: setCity, placeholder: "City", icon: "🏙️" }
+          ].map((input, index) => (
+            <div key={index} className="mb-3">
+              <div className="flex items-center bg-blue-700 rounded-lg p-2">
+                <span className="mr-2">{input.icon}</span>
+                <input
+                  type={input.type || "text"}
+                  value={input.value}
+                  onChange={(e) => input.setter(e.target.value)}
+                  placeholder={input.placeholder}
+                  className="w-full bg-transparent text-white placeholder-blue-200 outline-none"
+                />
+              </div>
+            </div>
           ))}
-        </select>
+        </div>
 
-        <button onClick={registerSeller} 
-          className="bg-green-600 text-white py-3 rounded-lg w-full shadow-md text-lg hover:bg-green-700 transition">
-          Register as Seller
+        {/* Service Category Section */}
+        <div className="bg-blue-800 rounded-xl p-4 mb-5 shadow-lg">
+          <h3 className="text-lg font-medium text-white mb-3">Service Category</h3>
+          <select 
+            value={selectedCategory} 
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="w-full bg-blue-700 text-white p-3 rounded-lg border border-blue-300"
+          >
+            {categories.map((category) => (
+              <option key={category} value={category}>{category}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Experience Section */}
+        <div className="bg-blue-800 rounded-xl p-4 mb-5 shadow-lg">
+          <h3 className="text-lg font-medium text-white mb-3">Years of Experience</h3>
+          <select 
+            value={selectedExperience} 
+            onChange={(e) => setSelectedExperience(e.target.value)}
+            className="w-full bg-blue-700 text-white p-3 rounded-lg border border-blue-300"
+          >
+            {experienceLevels.map((level) => (
+              <option key={level} value={level}>{level}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Certifications Section */}
+        <div className="bg-blue-800 rounded-xl p-4 mb-5 shadow-lg">
+          <h3 className="text-lg font-medium text-white mb-3">Professional Certifications</h3>
+          <select 
+            value={hasCertifications} 
+            onChange={(e) => setHasCertifications(e.target.value)}
+            className="w-full bg-blue-700 text-white p-3 rounded-lg border border-blue-300 mb-3"
+          >
+            {certificationOptions.map((option) => (
+              <option key={option} value={option}>{option}</option>
+            ))}
+          </select>
+          {hasCertifications === 'Yes' && (
+            <div className="mt-3">
+              <button 
+                onClick={() => document.getElementById('certificationInput').click()}
+                className="bg-blue-700 text-white px-4 py-2 rounded-lg mb-2"
+              >
+                Upload Certification
+              </button>
+              <input 
+                id="certificationInput"
+                type="file" 
+                onChange={(e) => handleImageChange(e, 'certification')} 
+                className="hidden" 
+              />
+              {certificationImage && (
+                <img 
+                  src={URL.createObjectURL(certificationImage)} 
+                  alt="Certification" 
+                  className="h-20 w-20 rounded-lg border-2 border-blue-300" 
+                />
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Work Type Section */}
+        <div className="bg-blue-800 rounded-xl p-4 mb-5 shadow-lg">
+          <h3 className="text-lg font-medium text-white mb-3">Work Type</h3>
+          <select 
+            value={workType} 
+            onChange={(e) => setWorkType(e.target.value)}
+            className="w-full bg-blue-700 text-white p-3 rounded-lg border border-blue-300"
+          >
+            {workTypeOptions.map((option) => (
+              <option key={option} value={option}>{option}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Preferred Location Section */}
+        <div className="bg-blue-800 rounded-xl p-4 mb-5 shadow-lg">
+          <h3 className="text-lg font-medium text-white mb-3">Preferred Working Locations</h3>
+          <div className="flex items-center bg-blue-700 rounded-lg p-2">
+            <span className="mr-2">🌍</span>
+            <input
+              type="text"
+              value={preferredLocation}
+              onChange={(e) => setPreferredLocation(e.target.value)}
+              placeholder="City/Area"
+              className="w-full bg-transparent text-white placeholder-blue-200 outline-none"
+            />
+          </div>
+        </div>
+
+        {/* Register Button */}
+        <button 
+          onClick={registerSeller}
+          className="w-full bg-white text-blue-900 font-bold py-3 px-6 rounded-xl shadow-lg hover:bg-gray-100 transition-colors"
+        >
+          REGISTER AS SELLER
         </button>
       </div>
     </div>

@@ -46,7 +46,7 @@ function Welcome() {
 
       {/* Main Welcome Content */}
       <div className="text-center bg-white p-10 rounded-2xl shadow-2xl max-w-sm relative z-10 bg-opacity-95 border-4 border-green-400">
-        <h1 className="text-4xl font-bold text-green-900">Welcome to My App</h1>
+        <h1 className="text-4xl font-bold text-green-900">TASKENST</h1>
         <p className="text-green-800 mt-3">Experience the best services with us.</p>
 
         <div className="mt-6 space-y-4">

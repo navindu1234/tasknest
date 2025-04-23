@@ -1,623 +1,803 @@
 import React, { useState, useEffect } from "react";
-import { db } from "../components/firebase";
+import { db, storage } from "../components/firebase";
 import { 
   collection, 
   addDoc, 
-  serverTimestamp, 
-  doc, 
-  getDoc, 
   query, 
   where, 
   orderBy, 
   limit, 
-  onSnapshot 
+  getDocs, 
+  updateDoc, 
+  doc,
+  getDoc  // Added getDoc import
 } from "firebase/firestore";
-import { useUser } from "../components/UserContext";
-import Rating from "@mui/material/Rating";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { useAuth } from "../contexts/AuthContext";
 import { useNavigate, useParams } from "react-router-dom";
-import { 
-  Box, 
-  Typography, 
-  TextField, 
-  Button, 
-  Card, 
-  CardContent, 
-  Container, 
-  Grid, 
-  CircularProgress, 
-  Divider,
-  Paper,
+import { Rating } from "@mui/material";
+import { Star as StarIcon } from "@mui/icons-material";
+import { format } from "date-fns";
+import { v4 as uuidv4 } from "uuid";
+import {
+  Container,
+  Card,
+  TextField,
+  Button,
+  Typography,
+  Box,
+  Grid,
+  Avatar,
+  IconButton,
+  CircularProgress,
   Snackbar,
-  Alert
+  Alert,
+  Paper,
 } from "@mui/material";
+import {
+  ShoppingBag,
+  Phone,
+  Description,
+  LocationOn,
+  CalendarToday,
+  AccessTime,
+  Comment,
+  AddAPhoto,
+  Close,
+} from "@mui/icons-material";
 
-const OrderScreen = () => {
-  // Get seller ID from URL params
+// Date picker imports - using native HTML inputs instead of MUI X Date Pickers
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
+
+const Order = () => {
   const { sellerId } = useParams();
-  const { user } = useUser();
+  const { currentUser } = useAuth();
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+  const [reviews, setReviews] = useState([]);
+  const [orderImages, setOrderImages] = useState([]);
+  const [reviewImages, setReviewImages] = useState([]);
+  const [seller, setSeller] = useState(null);
+  const [sellerLoading, setSellerLoading] = useState(true);
 
   // Form states
-  const [quantity, setQuantity] = useState("");
+  const [orderName, setOrderName] = useState("");
+  const [telephone, setTelephone] = useState("");
   const [description, setDescription] = useState("");
   const [place, setPlace] = useState("");
-  const [time, setTime] = useState("");
-  const [reviewText, setReviewText] = useState("");
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedTime, setSelectedTime] = useState(null);
+  const [formattedDateTime, setFormattedDateTime] = useState("");
   const [rating, setRating] = useState(0);
-  
-  // UI states
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [sellerInfo, setSellerInfo] = useState(null);
-  const [reviews, setReviews] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success"
-  });
+  const [reviewText, setReviewText] = useState("");
 
-  // Fetch seller data
+  // Colors - matching search.js theme
+  const primaryColor = "#16a34a";
+  const darkPrimaryColor = "#15803d";
+  const backgroundColor = "#f0fdf4";
+
   useEffect(() => {
-    const fetchSellerData = async () => {
-      if (!sellerId) return;
-      
+    const fetchSeller = async () => {
       try {
-        // First try fetching from users collection
-        const sellerDoc = await getDoc(doc(db, "users", sellerId));
+        const docRef = doc(db, "services", sellerId);
+        const docSnap = await getDoc(docRef);
         
-        if (sellerDoc.exists()) {
-          setSellerInfo({
-            uid: sellerDoc.id,
-            ...sellerDoc.data()
-          });
-        } else {
-          // If not found in users, try services collection
-          const serviceDoc = await getDoc(doc(db, "services", sellerId));
+        if (docSnap.exists()) {
+          let sellerData = { id: sellerId, ...docSnap.data() };
           
-          if (serviceDoc.exists()) {
-            setSellerInfo({
-              uid: serviceDoc.id,
-              ...serviceDoc.data()
-            });
-          } else {
-            setSnackbar({
-              open: true,
-              message: "Seller not found",
-              severity: "error"
-            });
+          // Fetch profile image if exists
+          if (sellerData.profileImage) {
+            try {
+              const imageUrl = await getDownloadURL(ref(storage, sellerData.profileImage));
+              sellerData.profileImage = imageUrl;
+            } catch (error) {
+              console.error("Error fetching profile image:", error);
+              sellerData.profileImage = "https://via.placeholder.com/150";
+            }
           }
+
+          // Fetch cover photo if exists
+          if (sellerData.coverPhoto) {
+            try {
+              const imageUrl = await getDownloadURL(ref(storage, sellerData.coverPhoto));
+              sellerData.coverPhoto = imageUrl;
+            } catch (error) {
+              console.error("Error fetching cover photo:", error);
+              sellerData.coverPhoto = "https://via.placeholder.com/400";
+            }
+          }
+
+          setSeller(sellerData);
+        } else {
+          setSnackbar({
+            open: true,
+            message: "Seller not found",
+            severity: "error",
+          });
+          navigate("/");
         }
       } catch (error) {
-        console.error("Error fetching seller data:", error);
+        console.error("Error fetching seller:", error);
         setSnackbar({
           open: true,
-          message: `Error: ${error.message}`,
-          severity: "error"
+          message: "Error loading seller information",
+          severity: "error",
         });
+        navigate("/");
       } finally {
-        setIsLoading(false);
+        setSellerLoading(false);
       }
     };
 
-    fetchSellerData();
-  }, [sellerId]);
+    if (currentUser?.phoneNumber) {
+      setTelephone(currentUser.phoneNumber);
+    }
 
-  // Fetch reviews
-  useEffect(() => {
+    fetchSeller();
+    fetchReviews();
+  }, [currentUser, sellerId, navigate]);
+
+  const fetchReviews = async () => {
     if (!sellerId) return;
-
-    const reviewsQuery = query(
-      collection(db, "reviews"),
-      where("sellerId", "==", sellerId),
-      orderBy("timestamp", "desc"),
-      limit(3)
-    );
-
-    const unsubscribe = onSnapshot(reviewsQuery, (snapshot) => {
-      const reviewsList = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setReviews(reviewsList);
-    }, (error) => {
-      console.error("Error fetching reviews:", error);
-    });
-
-    return () => unsubscribe();
-  }, [sellerId]);
-
-  const handleCloseSnackbar = () => {
-    setSnackbar({ ...snackbar, open: false });
-  };
-
-  const validateOrderForm = () => {
-    if (!user) {
-      setSnackbar({
-        open: true,
-        message: "Please log in to place an order",
-        severity: "error"
-      });
-      return false;
-    }
     
-    if (!quantity || isNaN(parseInt(quantity)) || parseInt(quantity) <= 0) {
-      setSnackbar({
-        open: true,
-        message: "Please enter a valid quantity",
-        severity: "error"
-      });
-      return false;
-    }
-    if (!description.trim()) {
-      setSnackbar({
-        open: true,
-        message: "Please enter a description",
-        severity: "error"
-      });
-      return false;
-    }
-    if (!place.trim()) {
-      setSnackbar({
-        open: true,
-        message: "Please enter a place",
-        severity: "error"
-      });
-      return false;
-    }
-    if (!time.trim()) {
-      setSnackbar({
-        open: true,
-        message: "Please enter a time",
-        severity: "error"
-      });
-      return false;
-    }
-    return true;
-  };
-
-  const validateReviewForm = () => {
-    if (!user) {
-      setSnackbar({
-        open: true,
-        message: "Please log in to submit a review",
-        severity: "error"
-      });
-      return false;
-    }
-    
-    if (rating === 0) {
-      setSnackbar({
-        open: true,
-        message: "Please select a rating",
-        severity: "error"
-      });
-      return false;
-    }
-    if (!reviewText.trim()) {
-      setSnackbar({
-        open: true,
-        message: "Please enter a review",
-        severity: "error"
-      });
-      return false;
-    }
-    return true;
-  };
-
-  const submitOrder = async (e) => {
-    e.preventDefault();
-    if (!validateOrderForm()) return;
-
-    setIsSubmitting(true);
     try {
-      // Create new order document
-      const orderRef = await addDoc(collection(db, "orders"), {
-        sellerName: sellerInfo.name,
-        sellerService: sellerInfo.service,
-        sellerId: sellerInfo.uid,
-        quantity: parseInt(quantity),
-        description: description.trim(),
-        place: place.trim(),
-        time: time.trim(),
+      const q = query(
+        collection(db, "reviews"),
+        where("sellerId", "==", sellerId),
+        orderBy("timestamp", "desc"),
+        limit(5)
+      );
+      const querySnapshot = await getDocs(q);
+      const reviewsData = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setReviews(reviewsData);
+    } catch (error) {
+      console.error("Error fetching reviews:", error);
+      setSnackbar({
+        open: true,
+        message: "Error fetching reviews",
+        severity: "error",
+      });
+    }
+  };
+
+  const handleImageUpload = async (files, isOrder) => {
+    const maxImages = 5;
+    const currentImages = isOrder ? orderImages : reviewImages;
+    
+    if (currentImages.length + files.length > maxImages) {
+      setSnackbar({
+        open: true,
+        message: "You can upload up to 5 images",
+        severity: "error",
+      });
+      return;
+    }
+
+    const newImages = Array.from(files);
+    if (isOrder) {
+      setOrderImages([...orderImages, ...newImages]);
+    } else {
+      setReviewImages([...reviewImages, ...newImages]);
+    }
+  };
+
+  const removeImage = (index, isOrder) => {
+    if (isOrder) {
+      setOrderImages(orderImages.filter((_, i) => i !== index));
+    } else {
+      setReviewImages(reviewImages.filter((_, i) => i !== index));
+    }
+  };
+
+  const uploadImages = async (images, folder) => {
+    const urls = [];
+    for (const image of images) {
+      const storageRef = ref(storage, `${folder}/${uuidv4()}_${image.name}`);
+      await uploadBytes(storageRef, image);
+      const downloadURL = await getDownloadURL(storageRef);
+      urls.push(downloadURL);
+    }
+    return urls;
+  };
+
+  const handleDateTimeChange = (newValue) => {
+    setSelectedDate(newValue);
+    if (newValue) {
+      setFormattedDateTime(format(newValue, "MMM dd, yyyy - hh:mm a"));
+    } else {
+      setFormattedDateTime("");
+    }
+  };
+
+  const submitOrder = async () => {
+    if (!seller) return;
+    
+    if (!orderName || !telephone || !description || !place || !formattedDateTime) {
+      setSnackbar({
+        open: true,
+        message: "Please fill all required fields",
+        severity: "error",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const orderImageUrls = await uploadImages(orderImages, "orders");
+
+      const orderDoc = await addDoc(collection(db, "orders"), {
+        orderName,
+        telephone,
+        sellerId: seller.id,
+        sellerName: seller.name,
+        sellerService: seller.service,
+        description,
+        place,
+        time: formattedDateTime,
         status: "pending",
-        timestamp: serverTimestamp(),
-        userId: user.uid,
-        username: user.username || "Unknown User",
-        userPhone: user.telephone || "",
-        lastUpdated: serverTimestamp(),
-        notificationSeen: false
+        timestamp: new Date(),
+        userId: currentUser.uid,
+        username: currentUser.displayName || "Unknown User",
+        userPhone: currentUser.phoneNumber || "",
+        images: orderImageUrls,
+        lastUpdated: new Date(),
+        notificationSeen: false,
       });
 
-      // Create notification for seller
       await addDoc(collection(db, "notifications"), {
-        recipientId: sellerInfo.uid,
-        senderId: user.uid,
+        recipientId: seller.uid,
+        senderId: currentUser.uid,
         type: "new_order",
-        orderId: orderRef.id,
-        message: `New order request for ${sellerInfo.service}`,
-        timestamp: serverTimestamp(),
-        read: false
+        orderId: orderDoc.id,
+        message: `New order request for ${seller.service}`,
+        timestamp: new Date(),
+        read: false,
       });
 
       setSnackbar({
         open: true,
         message: "Order submitted successfully",
-        severity: "success"
+        severity: "success",
       });
-
-      // Reset form
-      setQuantity("");
-      setDescription("");
-      setPlace("");
-      setTime("");
-      
-      // Navigate to my orders page
-      setTimeout(() => {
-        navigate(`/my-orders/${user.uid}`);
-      }, 1500);
+      navigate("/my-orders");
     } catch (error) {
       console.error("Error submitting order:", error);
       setSnackbar({
         open: true,
-        message: `Error: ${error.message}`,
-        severity: "error"
+        message: "Error submitting order",
+        severity: "error",
       });
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
 
-  const submitReview = async (e) => {
-    e.preventDefault();
-    if (!validateReviewForm()) return;
-
-    setIsSubmitting(true);
-    try {
-      await addDoc(collection(db, "reviews"), {
-        sellerId: sellerInfo.uid,
-        userId: user.uid,
-        username: user.username || "Unknown User",
-        rating: rating,
-        review: reviewText.trim(),
-        timestamp: serverTimestamp()
+  const submitReview = async () => {
+    if (!seller) return;
+    
+    if (!rating) {
+      setSnackbar({
+        open: true,
+        message: "Please provide a rating",
+        severity: "error",
       });
+      return;
+    }
+
+    if (!reviewText) {
+      setSnackbar({
+        open: true,
+        message: "Please enter your review",
+        severity: "error",
+      });
+      return;
+    }
+
+    setReviewLoading(true);
+    try {
+      const imageUrls = await uploadImages(reviewImages, "reviews");
+
+      await addDoc(collection(db, "reviews"), {
+        sellerId: seller.id,
+        sellerName: seller.name,
+        userId: currentUser.uid,
+        username: currentUser.displayName || "Unknown User",
+        rating,
+        review: reviewText,
+        images: imageUrls,
+        timestamp: new Date(),
+        service: seller.service,
+      });
+
+      await updateSellerRating();
 
       setSnackbar({
         open: true,
         message: "Review submitted successfully",
-        severity: "success"
+        severity: "success",
       });
-
-      // Reset form
       setReviewText("");
       setRating(0);
+      setReviewImages([]);
+      fetchReviews();
     } catch (error) {
       console.error("Error submitting review:", error);
       setSnackbar({
         open: true,
-        message: `Error: ${error.message}`,
-        severity: "error"
+        message: "Error submitting review",
+        severity: "error",
       });
     } finally {
-      setIsSubmitting(false);
+      setReviewLoading(false);
     }
   };
 
-  if (isLoading) {
+  const updateSellerRating = async () => {
+    if (!seller) return;
+    
+    try {
+      const q = query(collection(db, "reviews"), where("sellerId", "==", seller.id));
+      const querySnapshot = await getDocs(q);
+
+      let totalRating = 0;
+      const reviewCount = querySnapshot.size;
+
+      querySnapshot.forEach((doc) => {
+        totalRating += doc.data().rating || 0;
+      });
+
+      const averageRating = reviewCount > 0 ? totalRating / reviewCount : 0;
+
+      await updateDoc(doc(db, "services", seller.id), {
+        rating: averageRating,
+        reviewsCount: reviewCount,
+      });
+    } catch (error) {
+      console.error("Error updating seller rating:", error);
+      throw error;
+    }
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false });
+  };
+
+  const renderImagePreview = (images, isOrder) => {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
-        <CircularProgress sx={{ color: "#89AC46" }} />
+      <Box sx={{ display: "flex", gap: 2, overflowX: "auto", py: 2 }}>
+        {images.map((image, index) => (
+          <Box key={index} sx={{ position: "relative" }}>
+            <Box
+              component="img"
+              src={URL.createObjectURL(image)}
+              sx={{
+                width: 100,
+                height: 100,
+                borderRadius: 1,
+                objectFit: "cover",
+              }}
+            />
+            <IconButton
+              size="small"
+              sx={{
+                position: "absolute",
+                top: 0,
+                right: 0,
+                backgroundColor: "rgba(0,0,0,0.5)",
+                color: "white",
+                "&:hover": { backgroundColor: "rgba(0,0,0,0.7)" },
+              }}
+              onClick={() => removeImage(index, isOrder)}
+            >
+              <Close fontSize="small" />
+            </IconButton>
+          </Box>
+        ))}
+      </Box>
+    );
+  };
+
+  const renderReviewCard = (review) => {
+    return (
+      <Paper key={review.id} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
+        <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
+          <Typography variant="subtitle1" fontWeight="bold">
+            {review.username || "Anonymous"}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            {format(review.timestamp?.toDate(), "dd/MM/yyyy")}
+          </Typography>
+        </Box>
+        <Rating
+          value={review.rating}
+          precision={0.5}
+          readOnly
+          icon={<StarIcon fontSize="inherit" color="primary" />}
+          emptyIcon={<StarIcon fontSize="inherit" />}
+        />
+        <Typography variant="body1" sx={{ mt: 1, mb: 2 }}>
+          {review.review}
+        </Typography>
+        {review.images?.length > 0 && (
+          <>
+            <Typography variant="body2" fontWeight="500" color="text.secondary" sx={{ mb: 1 }}>
+              Photos:
+            </Typography>
+            <Box sx={{ display: "flex", gap: 2, overflowX: "auto" }}>
+              {review.images.map((img, idx) => (
+                <Box
+                  key={idx}
+                  component="img"
+                  src={img}
+                  sx={{
+                    width: 100,
+                    height: 100,
+                    borderRadius: 1,
+                    objectFit: "cover",
+                  }}
+                />
+              ))}
+            </Box>
+          </>
+        )}
+        {review.service && (
+          <Typography variant="caption" color="text.secondary" fontStyle="italic" sx={{ mt: 1 }}>
+            Service: {review.service}
+          </Typography>
+        )}
+      </Paper>
+    );
+  };
+
+  if (sellerLoading) {
+    return (
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '100vh',
+        background: 'linear-gradient(to bottom, #16a34a, #15803d)'
+      }}>
+        <CircularProgress sx={{ color: 'white' }} />
       </Box>
     );
   }
 
-  if (!sellerInfo) {
-    return (
-      <Container>
-        <Typography variant="h5" sx={{ textAlign: "center", mt: 5 }}>
-          Seller not found
-        </Typography>
-      </Container>
-    );
+  if (!seller) {
+    return null;
   }
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        background: `url('/assets/new.png')`,
-        backgroundSize: "cover",
-        backgroundAttachment: "fixed",
-        py: 3
-      }}
-    >
-      {/* App Bar */}
-      <Paper 
-        elevation={3}
-        sx={{ 
-          backgroundColor: "rgba(137, 172, 70, 0.8)", 
-          py: 2, 
-          px: 3, 
-          mb: 3,
-          borderRadius: 0
-        }}
-      >
-        <Typography variant="h5" color="white" fontWeight="600">
-          Order from {sellerInfo.name}
-        </Typography>
-      </Paper>
+    <Box sx={{ background: 'linear-gradient(to bottom, #16a34a, #15803d)', minHeight: "100vh" }}>
+      <Container maxWidth="md" sx={{ py: 4 }}>
+        <Card sx={{ mb: 3, borderRadius: 3, overflow: "hidden" }}>
+          <Box sx={{ backgroundColor: `${primaryColor}`, p: 3 }}>
+            <Typography variant="h5" fontWeight="bold" color="white">
+              Order from {seller.name}
+            </Typography>
+          </Box>
+        </Card>
 
-      <Container maxWidth="md">
-        <Grid container spacing={3}>
-          <Grid item xs={12}>
-            {/* Order Form Card */}
-            <Card 
-              elevation={5} 
-              sx={{ 
-                borderRadius: 3, 
-                backgroundColor: "rgba(255, 255, 255, 0.9)",
-                mb: 3
-              }}
-            >
-              <CardContent sx={{ p: 3 }}>
-                <Typography 
-                  variant="h6" 
-                  color="#6E8D38" 
-                  fontWeight="600" 
-                  gutterBottom
-                >
-                  Service: {sellerInfo.service}
-                </Typography>
-                
-                <Box component="form" onSubmit={submitOrder} sx={{ mt: 3 }}>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label="Quantity"
-                        type="number"
-                        value={quantity}
-                        onChange={(e) => setQuantity(e.target.value)}
-                        required
-                        sx={{
-                          "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                            borderColor: "#89AC46",
-                          },
-                          bgcolor: "white",
-                          borderRadius: 2
-                        }}
-                      />
-                    </Grid>
-                    
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label="Order Description"
-                        multiline
-                        rows={4}
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        required
-                        sx={{
-                          "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                            borderColor: "#89AC46",
-                          },
-                          bgcolor: "white",
-                          borderRadius: 2
-                        }}
-                      />
-                    </Grid>
-                    
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label="Place"
-                        value={place}
-                        onChange={(e) => setPlace(e.target.value)}
-                        required
-                        sx={{
-                          "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                            borderColor: "#89AC46",
-                          },
-                          bgcolor: "white",
-                          borderRadius: 2
-                        }}
-                      />
-                    </Grid>
-                    
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label="Time"
-                        value={time}
-                        onChange={(e) => setTime(e.target.value)}
-                        required
-                        sx={{
-                          "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                            borderColor: "#89AC46",
-                          },
-                          bgcolor: "white",
-                          borderRadius: 2
-                        }}
-                      />
-                    </Grid>
-                    
-                    <Grid item xs={12}>
-                      <Button
-                        type="submit"
-                        fullWidth
-                        variant="contained"
-                        disabled={isSubmitting}
-                        sx={{
-                          height: 50,
-                          bgcolor: "#89AC46",
-                          borderRadius: 2,
-                          "&:hover": {
-                            bgcolor: "#6E8D38",
-                          },
-                          fontSize: 16,
-                          fontWeight: 600
-                        }}
-                      >
-                        {isSubmitting ? <CircularProgress size={24} color="inherit" /> : "Submit Order"}
-                      </Button>
-                    </Grid>
-                  </Grid>
-                </Box>
-              </CardContent>
-            </Card>
-            
-            {/* Review Form Card */}
-            <Card 
-              elevation={5} 
-              sx={{ 
-                borderRadius: 3, 
-                backgroundColor: "rgba(255, 255, 255, 0.9)",
-                mb: 3 
-              }}
-            >
-              <CardContent sx={{ p: 3 }}>
-                <Typography 
-                  variant="h6" 
-                  color="#6E8D38" 
-                  fontWeight="600" 
-                  gutterBottom
-                >
-                  Leave a Review
-                </Typography>
-                
-                <Box component="form" onSubmit={submitReview} sx={{ mt: 3 }}>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} sx={{ display: "flex", justifyContent: "center" }}>
-                      <Rating
-                        name="rating"
-                        value={rating}
-                        precision={0.5}
-                        onChange={(e, newValue) => setRating(newValue)}
-                        size="large"
-                      />
-                    </Grid>
-                    
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label="Your Review"
-                        multiline
-                        rows={4}
-                        value={reviewText}
-                        onChange={(e) => setReviewText(e.target.value)}
-                        required
-                        sx={{
-                          "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                            borderColor: "#89AC46",
-                          },
-                          bgcolor: "white",
-                          borderRadius: 2
-                        }}
-                      />
-                    </Grid>
-                    
-                    <Grid item xs={12}>
-                      <Button
-                        type="submit"
-                        fullWidth
-                        variant="contained"
-                        disabled={isSubmitting}
-                        sx={{
-                          height: 50,
-                          bgcolor: "#89AC46",
-                          borderRadius: 2,
-                          "&:hover": {
-                            bgcolor: "#6E8D38",
-                          },
-                          fontSize: 16,
-                          fontWeight: 600
-                        }}
-                      >
-                        {isSubmitting ? <CircularProgress size={24} color="inherit" /> : "Submit Review"}
-                      </Button>
-                    </Grid>
-                  </Grid>
-                </Box>
-              </CardContent>
-            </Card>
-            
-            {/* Reviews List Card */}
-            <Card 
-              elevation={5} 
-              sx={{ 
-                borderRadius: 3, 
-                backgroundColor: "rgba(255, 255, 255, 0.9)",
-                mb: 3 
-              }}
-            >
-              <CardContent sx={{ p: 3 }}>
-                <Typography 
-                  variant="h6" 
-                  color="#6E8D38" 
-                  fontWeight="600" 
-                  gutterBottom
-                >
-                  Latest Reviews
-                </Typography>
-                
-                {reviews.length === 0 ? (
-                  <Typography color="text.secondary" sx={{ mt: 2 }}>
-                    No reviews yet
+        {/* Seller Info Card */}
+        <Card sx={{ mb: 3, borderRadius: 3, backgroundColor: backgroundColor }}>
+          <Box sx={{ p: 3 }}>
+            {seller.profileImage && (
+              <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
+                <Avatar src={seller.profileImage} sx={{ width: 100, height: 100 }} />
+              </Box>
+            )}
+            <Typography variant="h6" fontWeight="bold" color={darkPrimaryColor} gutterBottom>
+              {seller.name || "No Name"}
+            </Typography>
+            <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+              <StarIcon color="warning" fontSize="small" />
+              <Typography variant="body1" sx={{ ml: 0.5, mr: 1 }}>
+                {seller.rating?.toFixed(1) || "0.0"}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                ({seller.reviewsCount || "0"} reviews)
+              </Typography>
+            </Box>
+            <Grid container spacing={2} sx={{ mt: 1 }}>
+              {seller.service && (
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2">
+                    <strong>Service:</strong> {seller.service}
                   </Typography>
-                ) : (
-                  <Box sx={{ mt: 2 }}>
-                    {reviews.map((review, index) => (
-                      <React.Fragment key={review.id}>
-                        {index > 0 && <Divider sx={{ my: 3 }} />}
-                        <Paper 
-                          elevation={2}
-                          sx={{ 
-                            p: 2, 
-                            borderRadius: 2,
-                            bgcolor: "white" 
-                          }}
-                        >
-                          <Typography variant="subtitle1" fontWeight="600">
-                            {review.username}
-                          </Typography>
-                          
-                          <Box sx={{ mt: 1 }}>
-                            <Rating 
-                              value={review.rating} 
-                              precision={0.5} 
-                              readOnly 
-                              size="small" 
-                            />
-                          </Box>
-                          
-                          <Typography variant="body1" sx={{ mt: 1 }}>
-                            {review.review}
-                          </Typography>
-                        </Paper>
-                      </React.Fragment>
-                    ))}
-                  </Box>
-                )}
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
+                </Grid>
+              )}
+              {seller.category && (
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2">
+                    <strong>Category:</strong> {seller.category}
+                  </Typography>
+                </Grid>
+              )}
+              {seller.age && (
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2">
+                    <strong>Age:</strong> {seller.age}
+                  </Typography>
+                </Grid>
+              )}
+              {seller.city && (
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2">
+                    <strong>City:</strong> {seller.city}
+                  </Typography>
+                </Grid>
+              )}
+              {seller.address && (
+                <Grid item xs={12}>
+                  <Typography variant="body2">
+                    <strong>Address:</strong> {seller.address}
+                  </Typography>
+                </Grid>
+              )}
+              {seller.preferredLocation && (
+                <Grid item xs={12}>
+                  <Typography variant="body2">
+                    <strong>Preferred Location:</strong> {seller.preferredLocation}
+                  </Typography>
+                </Grid>
+              )}
+              {seller.workType && (
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2">
+                    <strong>Work Type:</strong> {seller.workType}
+                  </Typography>
+                </Grid>
+              )}
+              {seller.experience && (
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2">
+                    <strong>Experience:</strong> {seller.experience}
+                  </Typography>
+                </Grid>
+              )}
+              {seller.education && (
+                <Grid item xs={12}>
+                  <Typography variant="body2">
+                    <strong>Education:</strong> {seller.education}
+                  </Typography>
+                </Grid>
+              )}
+              {seller.hasCertifications && seller.certificationImage && (
+                <Grid item xs={12}>
+                  <Typography variant="body2" fontWeight="500" gutterBottom>
+                    Certifications:
+                  </Typography>
+                  <Box
+                    component="img"
+                    src={seller.certificationImage}
+                    sx={{
+                      height: 100,
+                      borderRadius: 1,
+                      cursor: "pointer",
+                      "&:hover": { opacity: 0.8 },
+                    }}
+                    onClick={() => window.open(seller.certificationImage, "_blank")}
+                  />
+                </Grid>
+              )}
+            </Grid>
+          </Box>
+        </Card>
+
+        {/* Order Form */}
+        <Card sx={{ mb: 3, borderRadius: 3, backgroundColor: backgroundColor }}>
+          <Box sx={{ p: 3 }}>
+            <Typography variant="h6" fontWeight="bold" color={darkPrimaryColor} gutterBottom>
+              Place Your Order
+            </Typography>
+            <Box component="form" sx={{ mt: 2 }}>
+              <TextField
+                label="Order Name"
+                fullWidth
+                margin="normal"
+                value={orderName}
+                onChange={(e) => setOrderName(e.target.value)}
+                InputProps={{ startAdornment: <ShoppingBag color="action" sx={{ mr: 1 }} /> }}
+                required
+              />
+              <TextField
+                label="Telephone Number"
+                fullWidth
+                margin="normal"
+                value={telephone}
+                onChange={(e) => setTelephone(e.target.value)}
+                InputProps={{ startAdornment: <Phone color="action" sx={{ mr: 1 }} /> }}
+                required
+              />
+              <TextField
+                label="Order Description"
+                fullWidth
+                margin="normal"
+                multiline
+                rows={4}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                InputProps={{ startAdornment: <Description color="action" sx={{ mr: 1 }} /> }}
+                required
+              />
+              <TextField
+                label="Address"
+                fullWidth
+                margin="normal"
+                value={place}
+                onChange={(e) => setPlace(e.target.value)}
+                InputProps={{ startAdornment: <LocationOn color="action" sx={{ mr: 1 }} /> }}
+                required
+              />
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  Date & Time
+                </Typography>
+                <LocalizationProvider dateAdapter={AdapterDateFns}>
+                  <DateTimePicker
+                    label="Select Date and Time"
+                    value={selectedDate}
+                    onChange={handleDateTimeChange}
+                    renderInput={(params) => <TextField {...params} fullWidth />}
+                  />
+                </LocalizationProvider>
+              </Box>
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  Add Order Photos (Optional - Max 5)
+                </Typography>
+                {orderImages.length > 0 && renderImagePreview(orderImages, true)}
+                <Button
+                  variant="outlined"
+                  startIcon={<AddAPhoto />}
+                  component="label"
+                  disabled={orderImages.length >= 5}
+                  sx={{
+                    mt: 1,
+                    color: orderImages.length >= 5 ? "text.disabled" : darkPrimaryColor,
+                    borderColor: orderImages.length >= 5 ? "action.disabled" : darkPrimaryColor,
+                  }}
+                >
+                  Add Photos ({orderImages.length}/5)
+                  <input
+                    type="file"
+                    hidden
+                    multiple
+                    accept="image/*"
+                    onChange={(e) => handleImageUpload(e.target.files, true)}
+                  />
+                </Button>
+              </Box>
+              <Button
+                fullWidth
+                variant="contained"
+                size="large"
+                sx={{
+                  mt: 3,
+                  backgroundColor: primaryColor,
+                  "&:hover": { backgroundColor: darkPrimaryColor },
+                }}
+                onClick={submitOrder}
+                disabled={loading}
+              >
+                {loading ? <CircularProgress size={24} color="inherit" /> : "Submit Order"}
+              </Button>
+            </Box>
+          </Box>
+        </Card>
+
+        {/* Review Form */}
+        <Card sx={{ mb: 3, borderRadius: 3, backgroundColor: backgroundColor }}>
+          <Box sx={{ p: 3 }}>
+            <Typography variant="h6" fontWeight="bold" color={darkPrimaryColor} gutterBottom>
+              Leave a Review
+            </Typography>
+            <Box component="form" sx={{ mt: 2 }}>
+              <Rating
+                value={rating}
+                precision={0.5}
+                onChange={(e, newValue) => setRating(newValue)}
+                icon={<StarIcon fontSize="inherit" color="primary" />}
+                emptyIcon={<StarIcon fontSize="inherit" />}
+              />
+              <TextField
+                label="Your Review"
+                fullWidth
+                margin="normal"
+                multiline
+                rows={4}
+                value={reviewText}
+                onChange={(e) => setReviewText(e.target.value)}
+                InputProps={{ startAdornment: <Comment color="action" sx={{ mr: 1 }} /> }}
+                required
+              />
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  Add Photos (Optional - Max 5)
+                </Typography>
+                {reviewImages.length > 0 && renderImagePreview(reviewImages, false)}
+                <Button
+                  variant="outlined"
+                  startIcon={<AddAPhoto />}
+                  component="label"
+                  disabled={reviewImages.length >= 5}
+                  sx={{
+                    mt: 1,
+                    color: reviewImages.length >= 5 ? "text.disabled" : darkPrimaryColor,
+                    borderColor: reviewImages.length >= 5 ? "action.disabled" : darkPrimaryColor,
+                  }}
+                >
+                  Add Photos ({reviewImages.length}/5)
+                  <input
+                    type="file"
+                    hidden
+                    multiple
+                    accept="image/*"
+                    onChange={(e) => handleImageUpload(e.target.files, false)}
+                  />
+                </Button>
+              </Box>
+              <Button
+                fullWidth
+                variant="contained"
+                size="large"
+                sx={{
+                  mt: 3,
+                  backgroundColor: primaryColor,
+                  "&:hover": { backgroundColor: darkPrimaryColor },
+                }}
+                onClick={submitReview}
+                disabled={reviewLoading}
+              >
+                {reviewLoading ? <CircularProgress size={24} color="inherit" /> : "Submit Review"}
+              </Button>
+            </Box>
+          </Box>
+        </Card>
+
+        {/* Reviews List */}
+        <Card sx={{ borderRadius: 3, backgroundColor: backgroundColor }}>
+          <Box sx={{ p: 3 }}>
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+              <Typography variant="h6" fontWeight="bold" color={darkPrimaryColor}>
+                Customer Reviews
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Latest 5 Reviews
+              </Typography>
+            </Box>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              For {seller.name}
+            </Typography>
+            <Box sx={{ mt: 2 }}>
+              {reviews.length > 0 ? (
+                reviews.map(renderReviewCard)
+              ) : (
+                <Paper sx={{ p: 3, textAlign: "center" }}>
+                  <Typography variant="body1" color="text.secondary">
+                    No reviews yet. Be the first to review!
+                  </Typography>
+                </Paper>
+              )}
+            </Box>
+          </Box>
+        </Card>
       </Container>
 
-      {/* Snackbar for notifications */}
-      <Snackbar 
-        open={snackbar.open} 
-        autoHideDuration={6000} 
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
         onClose={handleCloseSnackbar}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
-        <Alert 
-          onClose={handleCloseSnackbar} 
-          severity={snackbar.severity}
-          variant="filled"
-          sx={{ width: "100%" }}
-        >
+        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: "100%" }}>
           {snackbar.message}
         </Alert>
       </Snackbar>
@@ -625,4 +805,4 @@ const OrderScreen = () => {
   );
 };
 
-export default OrderScreen;
+export default Order;
