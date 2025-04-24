@@ -10,7 +10,7 @@ import {
   getDocs, 
   updateDoc, 
   doc,
-  getDoc  // Added getDoc import
+  getDoc
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useAuth } from "../contexts/AuthContext";
@@ -33,6 +33,8 @@ import {
   Snackbar,
   Alert,
   Paper,
+  Chip,
+  Divider
 } from "@mui/material";
 import {
   ShoppingBag,
@@ -44,9 +46,13 @@ import {
   Comment,
   AddAPhoto,
   Close,
+  ArrowBack,
+  Work,
+  School,
+  Place,
+  Schedule,
+  StarBorder
 } from "@mui/icons-material";
-
-// Date picker imports - using native HTML inputs instead of MUI X Date Pickers
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
@@ -70,15 +76,16 @@ const Order = () => {
   const [description, setDescription] = useState("");
   const [place, setPlace] = useState("");
   const [selectedDate, setSelectedDate] = useState(null);
-  const [selectedTime, setSelectedTime] = useState(null);
   const [formattedDateTime, setFormattedDateTime] = useState("");
   const [rating, setRating] = useState(0);
   const [reviewText, setReviewText] = useState("");
 
-  // Colors - matching search.js theme
+  // Theme colors
   const primaryColor = "#16a34a";
   const darkPrimaryColor = "#15803d";
+  const lightPrimaryColor = "#dcfce7";
   const backgroundColor = "#f0fdf4";
+  const textColor = "#052e16";
 
   useEffect(() => {
     const fetchSeller = async () => {
@@ -382,17 +389,18 @@ const Order = () => {
                 height: 100,
                 borderRadius: 1,
                 objectFit: "cover",
+                border: `1px solid ${primaryColor}`
               }}
             />
             <IconButton
               size="small"
               sx={{
                 position: "absolute",
-                top: 0,
-                right: 0,
-                backgroundColor: "rgba(0,0,0,0.5)",
-                color: "white",
-                "&:hover": { backgroundColor: "rgba(0,0,0,0.7)" },
+                top: 4,
+                right: 4,
+                backgroundColor: "rgba(255,255,255,0.8)",
+                color: darkPrimaryColor,
+                "&:hover": { backgroundColor: "white" },
               }}
               onClick={() => removeImage(index, isOrder)}
             >
@@ -406,27 +414,37 @@ const Order = () => {
 
   const renderReviewCard = (review) => {
     return (
-      <Paper key={review.id} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
+      <Paper 
+        key={review.id} 
+        sx={{ 
+          p: 3, 
+          mb: 3, 
+          borderRadius: 2,
+          borderLeft: `4px solid ${primaryColor}`,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+        }}
+      >
         <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
-          <Typography variant="subtitle1" fontWeight="bold">
+          <Typography variant="subtitle1" fontWeight="bold" color={textColor}>
             {review.username || "Anonymous"}
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            {format(review.timestamp?.toDate(), "dd/MM/yyyy")}
+            {format(review.timestamp?.toDate(), "MMM dd, yyyy")}
           </Typography>
         </Box>
         <Rating
           value={review.rating}
           precision={0.5}
           readOnly
-          icon={<StarIcon fontSize="inherit" color="primary" />}
-          emptyIcon={<StarIcon fontSize="inherit" />}
+          icon={<StarIcon fontSize="inherit" sx={{ color: primaryColor }} />}
+          emptyIcon={<StarIcon fontSize="inherit" sx={{ color: '#e0e0e0' }} />}
         />
-        <Typography variant="body1" sx={{ mt: 1, mb: 2 }}>
+        <Typography variant="body1" sx={{ mt: 1, mb: 2, color: textColor }}>
           {review.review}
         </Typography>
         {review.images?.length > 0 && (
           <>
+            <Divider sx={{ my: 2 }} />
             <Typography variant="body2" fontWeight="500" color="text.secondary" sx={{ mb: 1 }}>
               Photos:
             </Typography>
@@ -441,16 +459,28 @@ const Order = () => {
                     height: 100,
                     borderRadius: 1,
                     objectFit: "cover",
+                    cursor: "pointer",
+                    transition: "transform 0.2s",
+                    "&:hover": {
+                      transform: "scale(1.05)"
+                    }
                   }}
+                  onClick={() => window.open(img, "_blank")}
                 />
               ))}
             </Box>
           </>
         )}
         {review.service && (
-          <Typography variant="caption" color="text.secondary" fontStyle="italic" sx={{ mt: 1 }}>
-            Service: {review.service}
-          </Typography>
+          <Chip
+            label={`Service: ${review.service}`}
+            size="small"
+            sx={{ 
+              mt: 2,
+              backgroundColor: lightPrimaryColor,
+              color: darkPrimaryColor
+            }}
+          />
         )}
       </Paper>
     );
@@ -463,7 +493,7 @@ const Order = () => {
         justifyContent: 'center', 
         alignItems: 'center', 
         minHeight: '100vh',
-        background: 'linear-gradient(to bottom, #16a34a, #15803d)'
+        background: `linear-gradient(to bottom, ${primaryColor}, ${darkPrimaryColor})`
       }}>
         <CircularProgress sx={{ color: 'white' }} />
       </Box>
@@ -475,116 +505,168 @@ const Order = () => {
   }
 
   return (
-    <Box sx={{ background: 'linear-gradient(to bottom, #16a34a, #15803d)', minHeight: "100vh" }}>
-      <Container maxWidth="md" sx={{ py: 4 }}>
-        <Card sx={{ mb: 3, borderRadius: 3, overflow: "hidden" }}>
-          <Box sx={{ backgroundColor: `${primaryColor}`, p: 3 }}>
-            <Typography variant="h5" fontWeight="bold" color="white">
-              Order from {seller.name}
-            </Typography>
-          </Box>
-        </Card>
+    <Box sx={{ 
+      background: `linear-gradient(to bottom, ${primaryColor}, ${darkPrimaryColor})`, 
+      minHeight: "100vh",
+      pb: 4
+    }}>
+      <Container maxWidth="md">
+        {/* Back Button */}
+        <Button
+          startIcon={<ArrowBack />}
+          sx={{ 
+            mt: 3, 
+            color: 'white',
+            '&:hover': {
+              backgroundColor: 'rgba(255,255,255,0.1)'
+            }
+          }}
+          onClick={() => navigate(-1)}
+        >
+          Back
+        </Button>
 
-        {/* Seller Info Card */}
-        <Card sx={{ mb: 3, borderRadius: 3, backgroundColor: backgroundColor }}>
+        {/* Header */}
+        <Typography 
+          variant="h4" 
+          fontWeight="bold" 
+          sx={{ 
+            mt: 2, 
+            mb: 4, 
+            color: 'white',
+            textAlign: 'center',
+            textShadow: '0 2px 4px rgba(0,0,0,0.2)'
+          }}
+        >
+          Order from {seller.name}
+        </Typography>
+
+        {/* Seller Profile Card */}
+        <Card sx={{ 
+          mb: 3, 
+          borderRadius: 3, 
+          backgroundColor: 'white',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+        }}>
           <Box sx={{ p: 3 }}>
-            {seller.profileImage && (
-              <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
-                <Avatar src={seller.profileImage} sx={{ width: 100, height: 100 }} />
+            <Box sx={{ 
+              display: 'flex', 
+              flexDirection: { xs: 'column', sm: 'row' }, 
+              alignItems: 'center',
+              mb: 3
+            }}>
+              <Avatar 
+                src={seller.profileImage} 
+                sx={{ 
+                  width: 120, 
+                  height: 120,
+                  border: `3px solid ${primaryColor}`
+                }} 
+              />
+              <Box sx={{ 
+                ml: { sm: 3 }, 
+                mt: { xs: 2, sm: 0 },
+                textAlign: { xs: 'center', sm: 'left' }
+              }}>
+                <Typography variant="h5" fontWeight="bold" color={textColor}>
+                  {seller.name || "No Name"}
+                </Typography>
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: { xs: 'center', sm: 'flex-start' },
+                  mt: 1
+                }}>
+                  <Rating
+                    value={seller.rating || 0}
+                    precision={0.5}
+                    readOnly
+                    size="small"
+                    icon={<StarIcon fontSize="inherit" sx={{ color: primaryColor }} />}
+                    emptyIcon={<StarIcon fontSize="inherit" sx={{ color: '#e0e0e0' }} />}
+                  />
+                  <Typography variant="body2" sx={{ ml: 1, color: textColor }}>
+                    ({seller.reviewsCount || 0} reviews)
+                  </Typography>
+                </Box>
+                {seller.service && (
+                  <Chip
+                    label={seller.service}
+                    sx={{ 
+                      mt: 1,
+                      backgroundColor: lightPrimaryColor,
+                      color: darkPrimaryColor,
+                      fontWeight: 'bold'
+                    }}
+                  />
+                )}
               </Box>
-            )}
-            <Typography variant="h6" fontWeight="bold" color={darkPrimaryColor} gutterBottom>
-              {seller.name || "No Name"}
-            </Typography>
-            <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-              <StarIcon color="warning" fontSize="small" />
-              <Typography variant="body1" sx={{ ml: 0.5, mr: 1 }}>
-                {seller.rating?.toFixed(1) || "0.0"}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                ({seller.reviewsCount || "0"} reviews)
-              </Typography>
             </Box>
-            <Grid container spacing={2} sx={{ mt: 1 }}>
-              {seller.service && (
-                <Grid item xs={12} sm={6}>
-                  <Typography variant="body2">
-                    <strong>Service:</strong> {seller.service}
-                  </Typography>
-                </Grid>
-              )}
-              {seller.category && (
-                <Grid item xs={12} sm={6}>
-                  <Typography variant="body2">
-                    <strong>Category:</strong> {seller.category}
-                  </Typography>
-                </Grid>
-              )}
-              {seller.age && (
-                <Grid item xs={12} sm={6}>
-                  <Typography variant="body2">
-                    <strong>Age:</strong> {seller.age}
-                  </Typography>
-                </Grid>
-              )}
+
+            <Divider sx={{ my: 2 }} />
+
+            {/* Seller Details */}
+            <Grid container spacing={2}>
               {seller.city && (
                 <Grid item xs={12} sm={6}>
-                  <Typography variant="body2">
-                    <strong>City:</strong> {seller.city}
-                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Place color="action" sx={{ mr: 1, color: primaryColor }} />
+                    <Typography variant="body2" color={textColor}>
+                      <strong>Location:</strong> {seller.city}
+                    </Typography>
+                  </Box>
                 </Grid>
               )}
               {seller.address && (
-                <Grid item xs={12}>
-                  <Typography variant="body2">
-                    <strong>Address:</strong> {seller.address}
-                  </Typography>
-                </Grid>
-              )}
-              {seller.preferredLocation && (
-                <Grid item xs={12}>
-                  <Typography variant="body2">
-                    <strong>Preferred Location:</strong> {seller.preferredLocation}
-                  </Typography>
-                </Grid>
-              )}
-              {seller.workType && (
                 <Grid item xs={12} sm={6}>
-                  <Typography variant="body2">
-                    <strong>Work Type:</strong> {seller.workType}
-                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <LocationOn color="action" sx={{ mr: 1, color: primaryColor }} />
+                    <Typography variant="body2" color={textColor}>
+                      <strong>Address:</strong> {seller.address}
+                    </Typography>
+                  </Box>
                 </Grid>
               )}
               {seller.experience && (
                 <Grid item xs={12} sm={6}>
-                  <Typography variant="body2">
-                    <strong>Experience:</strong> {seller.experience}
-                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Work color="action" sx={{ mr: 1, color: primaryColor }} />
+                    <Typography variant="body2" color={textColor}>
+                      <strong>Experience:</strong> {seller.experience}
+                    </Typography>
+                  </Box>
                 </Grid>
               )}
               {seller.education && (
-                <Grid item xs={12}>
-                  <Typography variant="body2">
-                    <strong>Education:</strong> {seller.education}
-                  </Typography>
+                <Grid item xs={12} sm={6}>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <School color="action" sx={{ mr: 1, color: primaryColor }} />
+                    <Typography variant="body2" color={textColor}>
+                      <strong>Education:</strong> {seller.education}
+                    </Typography>
+                  </Box>
                 </Grid>
               )}
               {seller.hasCertifications && seller.certificationImage && (
                 <Grid item xs={12}>
-                  <Typography variant="body2" fontWeight="500" gutterBottom>
-                    Certifications:
-                  </Typography>
-                  <Box
-                    component="img"
-                    src={seller.certificationImage}
-                    sx={{
-                      height: 100,
-                      borderRadius: 1,
-                      cursor: "pointer",
-                      "&:hover": { opacity: 0.8 },
-                    }}
-                    onClick={() => window.open(seller.certificationImage, "_blank")}
-                  />
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="body2" fontWeight="500" color={textColor} gutterBottom>
+                      Certifications:
+                    </Typography>
+                    <Box
+                      component="img"
+                      src={seller.certificationImage}
+                      sx={{
+                        maxHeight: 150,
+                        maxWidth: '100%',
+                        borderRadius: 1,
+                        cursor: "pointer",
+                        border: `1px solid ${primaryColor}`,
+                        "&:hover": { opacity: 0.8 },
+                      }}
+                      onClick={() => window.open(seller.certificationImage, "_blank")}
+                    />
+                  </Box>
                 </Grid>
               )}
             </Grid>
@@ -592,30 +674,54 @@ const Order = () => {
         </Card>
 
         {/* Order Form */}
-        <Card sx={{ mb: 3, borderRadius: 3, backgroundColor: backgroundColor }}>
+        <Card sx={{ 
+          mb: 3, 
+          borderRadius: 3, 
+          backgroundColor: 'white',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+        }}>
           <Box sx={{ p: 3 }}>
-            <Typography variant="h6" fontWeight="bold" color={darkPrimaryColor} gutterBottom>
+            <Typography variant="h5" fontWeight="bold" color={textColor} gutterBottom>
+              <ShoppingBag sx={{ 
+                color: primaryColor, 
+                verticalAlign: 'middle', 
+                mr: 1 
+              }} />
               Place Your Order
             </Typography>
-            <Box component="form" sx={{ mt: 2 }}>
-              <TextField
-                label="Order Name"
-                fullWidth
-                margin="normal"
-                value={orderName}
-                onChange={(e) => setOrderName(e.target.value)}
-                InputProps={{ startAdornment: <ShoppingBag color="action" sx={{ mr: 1 }} /> }}
-                required
-              />
-              <TextField
-                label="Telephone Number"
-                fullWidth
-                margin="normal"
-                value={telephone}
-                onChange={(e) => setTelephone(e.target.value)}
-                InputProps={{ startAdornment: <Phone color="action" sx={{ mr: 1 }} /> }}
-                required
-              />
+            
+            <Box component="form" sx={{ mt: 3 }}>
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    label="Order Name"
+                    fullWidth
+                    margin="normal"
+                    value={orderName}
+                    onChange={(e) => setOrderName(e.target.value)}
+                    InputProps={{ 
+                      startAdornment: <ShoppingBag color="action" sx={{ mr: 1, color: primaryColor }} />,
+                      sx: { borderRadius: 2 }
+                    }}
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    label="Telephone Number"
+                    fullWidth
+                    margin="normal"
+                    value={telephone}
+                    onChange={(e) => setTelephone(e.target.value)}
+                    InputProps={{ 
+                      startAdornment: <Phone color="action" sx={{ mr: 1, color: primaryColor }} />,
+                      sx: { borderRadius: 2 }
+                    }}
+                    required
+                  />
+                </Grid>
+              </Grid>
+
               <TextField
                 label="Order Description"
                 fullWidth
@@ -624,33 +730,58 @@ const Order = () => {
                 rows={4}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                InputProps={{ startAdornment: <Description color="action" sx={{ mr: 1 }} /> }}
+                InputProps={{ 
+                  startAdornment: <Description color="action" sx={{ mr: 1, color: primaryColor }} />,
+                  sx: { borderRadius: 2 }
+                }}
                 required
               />
+
               <TextField
-                label="Address"
+                label="Service Address"
                 fullWidth
                 margin="normal"
                 value={place}
                 onChange={(e) => setPlace(e.target.value)}
-                InputProps={{ startAdornment: <LocationOn color="action" sx={{ mr: 1 }} /> }}
+                InputProps={{ 
+                  startAdornment: <LocationOn color="action" sx={{ mr: 1, color: primaryColor }} />,
+                  sx: { borderRadius: 2 }
+                }}
                 required
               />
+
               <Box sx={{ mt: 2 }}>
                 <Typography variant="body2" color="text.secondary" gutterBottom>
-                  Date & Time
+                  <Schedule sx={{ 
+                    verticalAlign: 'middle', 
+                    mr: 1, 
+                    color: primaryColor 
+                  }} />
+                  Select Date & Time
                 </Typography>
                 <LocalizationProvider dateAdapter={AdapterDateFns}>
                   <DateTimePicker
-                    label="Select Date and Time"
+                    label="Date and Time"
                     value={selectedDate}
                     onChange={handleDateTimeChange}
-                    renderInput={(params) => <TextField {...params} fullWidth />}
+                    renderInput={(params) => (
+                      <TextField 
+                        {...params} 
+                        fullWidth 
+                        sx={{ borderRadius: 2 }}
+                      />
+                    )}
                   />
                 </LocalizationProvider>
               </Box>
-              <Box sx={{ mt: 2 }}>
+
+              <Box sx={{ mt: 3 }}>
                 <Typography variant="body2" color="text.secondary" gutterBottom>
+                  <AddAPhoto sx={{ 
+                    verticalAlign: 'middle', 
+                    mr: 1, 
+                    color: primaryColor 
+                  }} />
                   Add Order Photos (Optional - Max 5)
                 </Typography>
                 {orderImages.length > 0 && renderImagePreview(orderImages, true)}
@@ -661,11 +792,16 @@ const Order = () => {
                   disabled={orderImages.length >= 5}
                   sx={{
                     mt: 1,
-                    color: orderImages.length >= 5 ? "text.disabled" : darkPrimaryColor,
-                    borderColor: orderImages.length >= 5 ? "action.disabled" : darkPrimaryColor,
+                    color: orderImages.length >= 5 ? "text.disabled" : primaryColor,
+                    borderColor: orderImages.length >= 5 ? "action.disabled" : primaryColor,
+                    borderRadius: 2,
+                    '&:hover': {
+                      backgroundColor: lightPrimaryColor,
+                      borderColor: primaryColor
+                    }
                   }}
                 >
-                  Add Photos ({orderImages.length}/5)
+                  Upload Photos ({orderImages.length}/5)
                   <input
                     type="file"
                     hidden
@@ -675,6 +811,7 @@ const Order = () => {
                   />
                 </Button>
               </Box>
+
               <Button
                 fullWidth
                 variant="contained"
@@ -682,31 +819,60 @@ const Order = () => {
                 sx={{
                   mt: 3,
                   backgroundColor: primaryColor,
-                  "&:hover": { backgroundColor: darkPrimaryColor },
+                  borderRadius: 2,
+                  py: 1.5,
+                  fontSize: '1rem',
+                  fontWeight: 'bold',
+                  "&:hover": { 
+                    backgroundColor: darkPrimaryColor,
+                    boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
+                  },
                 }}
                 onClick={submitOrder}
                 disabled={loading}
               >
-                {loading ? <CircularProgress size={24} color="inherit" /> : "Submit Order"}
+                {loading ? (
+                  <CircularProgress size={24} color="inherit" />
+                ) : (
+                  "Submit Order Request"
+                )}
               </Button>
             </Box>
           </Box>
         </Card>
 
         {/* Review Form */}
-        <Card sx={{ mb: 3, borderRadius: 3, backgroundColor: backgroundColor }}>
+        <Card sx={{ 
+          mb: 3, 
+          borderRadius: 3, 
+          backgroundColor: 'white',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+        }}>
           <Box sx={{ p: 3 }}>
-            <Typography variant="h6" fontWeight="bold" color={darkPrimaryColor} gutterBottom>
+            <Typography variant="h5" fontWeight="bold" color={textColor} gutterBottom>
+              <StarBorder sx={{ 
+                color: primaryColor, 
+                verticalAlign: 'middle', 
+                mr: 1 
+              }} />
               Leave a Review
             </Typography>
-            <Box component="form" sx={{ mt: 2 }}>
-              <Rating
-                value={rating}
-                precision={0.5}
-                onChange={(e, newValue) => setRating(newValue)}
-                icon={<StarIcon fontSize="inherit" color="primary" />}
-                emptyIcon={<StarIcon fontSize="inherit" />}
-              />
+            
+            <Box component="form" sx={{ mt: 3 }}>
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  Your Rating
+                </Typography>
+                <Rating
+                  value={rating}
+                  precision={0.5}
+                  onChange={(e, newValue) => setRating(newValue)}
+                  icon={<StarIcon fontSize="large" sx={{ color: primaryColor }} />}
+                  emptyIcon={<StarIcon fontSize="large" sx={{ color: '#e0e0e0' }} />}
+                  size="large"
+                />
+              </Box>
+
               <TextField
                 label="Your Review"
                 fullWidth
@@ -715,11 +881,20 @@ const Order = () => {
                 rows={4}
                 value={reviewText}
                 onChange={(e) => setReviewText(e.target.value)}
-                InputProps={{ startAdornment: <Comment color="action" sx={{ mr: 1 }} /> }}
+                InputProps={{ 
+                  startAdornment: <Comment color="action" sx={{ mr: 1, color: primaryColor }} />,
+                  sx: { borderRadius: 2 }
+                }}
                 required
               />
-              <Box sx={{ mt: 2 }}>
+
+              <Box sx={{ mt: 3 }}>
                 <Typography variant="body2" color="text.secondary" gutterBottom>
+                  <AddAPhoto sx={{ 
+                    verticalAlign: 'middle', 
+                    mr: 1, 
+                    color: primaryColor 
+                  }} />
                   Add Photos (Optional - Max 5)
                 </Typography>
                 {reviewImages.length > 0 && renderImagePreview(reviewImages, false)}
@@ -730,11 +905,16 @@ const Order = () => {
                   disabled={reviewImages.length >= 5}
                   sx={{
                     mt: 1,
-                    color: reviewImages.length >= 5 ? "text.disabled" : darkPrimaryColor,
-                    borderColor: reviewImages.length >= 5 ? "action.disabled" : darkPrimaryColor,
+                    color: reviewImages.length >= 5 ? "text.disabled" : primaryColor,
+                    borderColor: reviewImages.length >= 5 ? "action.disabled" : primaryColor,
+                    borderRadius: 2,
+                    '&:hover': {
+                      backgroundColor: lightPrimaryColor,
+                      borderColor: primaryColor
+                    }
                   }}
                 >
-                  Add Photos ({reviewImages.length}/5)
+                  Upload Photos ({reviewImages.length}/5)
                   <input
                     type="file"
                     hidden
@@ -744,6 +924,7 @@ const Order = () => {
                   />
                 </Button>
               </Box>
+
               <Button
                 fullWidth
                 variant="contained"
@@ -751,37 +932,76 @@ const Order = () => {
                 sx={{
                   mt: 3,
                   backgroundColor: primaryColor,
-                  "&:hover": { backgroundColor: darkPrimaryColor },
+                  borderRadius: 2,
+                  py: 1.5,
+                  fontSize: '1rem',
+                  fontWeight: 'bold',
+                  "&:hover": { 
+                    backgroundColor: darkPrimaryColor,
+                    boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
+                  },
                 }}
                 onClick={submitReview}
-                disabled={reviewLoading}
+                disabled={reviewLoading || !rating || !reviewText}
               >
-                {reviewLoading ? <CircularProgress size={24} color="inherit" /> : "Submit Review"}
+                {reviewLoading ? (
+                  <CircularProgress size={24} color="inherit" />
+                ) : (
+                  "Submit Your Review"
+                )}
               </Button>
             </Box>
           </Box>
         </Card>
 
-        {/* Reviews List */}
-        <Card sx={{ borderRadius: 3, backgroundColor: backgroundColor }}>
+        {/* Reviews Section */}
+        <Card sx={{ 
+          borderRadius: 3, 
+          backgroundColor: 'white',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+        }}>
           <Box sx={{ p: 3 }}>
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-              <Typography variant="h6" fontWeight="bold" color={darkPrimaryColor}>
+            <Box sx={{ 
+              display: "flex", 
+              justifyContent: "space-between", 
+              alignItems: "center", 
+              mb: 2
+            }}>
+              <Typography variant="h5" fontWeight="bold" color={textColor}>
+                <Comment sx={{ 
+                  color: primaryColor, 
+                  verticalAlign: 'middle', 
+                  mr: 1 
+                }} />
                 Customer Reviews
               </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Latest 5 Reviews
-              </Typography>
+              <Chip
+                label={`${seller.reviewsCount || 0} reviews`}
+                size="small"
+                sx={{ 
+                  backgroundColor: lightPrimaryColor,
+                  color: darkPrimaryColor,
+                  fontWeight: 'bold'
+                }}
+              />
             </Box>
+            
             <Typography variant="body2" color="text.secondary" gutterBottom>
-              For {seller.name}
+              What others say about {seller.name}
             </Typography>
+            
+            <Divider sx={{ my: 3 }} />
+            
             <Box sx={{ mt: 2 }}>
               {reviews.length > 0 ? (
                 reviews.map(renderReviewCard)
               ) : (
-                <Paper sx={{ p: 3, textAlign: "center" }}>
-                  <Typography variant="body1" color="text.secondary">
+                <Paper sx={{ 
+                  p: 3, 
+                  textAlign: "center",
+                  backgroundColor: lightPrimaryColor
+                }}>
+                  <Typography variant="body1" color={textColor}>
                     No reviews yet. Be the first to review!
                   </Typography>
                 </Paper>
@@ -797,7 +1017,17 @@ const Order = () => {
         onClose={handleCloseSnackbar}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: "100%" }}>
+        <Alert 
+          onClose={handleCloseSnackbar} 
+          severity={snackbar.severity} 
+          sx={{ 
+            width: "100%",
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            '& .MuiAlert-icon': {
+              color: snackbar.severity === 'error' ? 'error.main' : `${primaryColor}`
+            }
+          }}
+        >
           {snackbar.message}
         </Alert>
       </Snackbar>

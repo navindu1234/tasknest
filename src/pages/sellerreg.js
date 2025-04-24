@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { db, storage } from '../components/firebase'; 
 import { collection, addDoc } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { FaUser, FaCamera, FaFileAlt, FaMapMarkerAlt, FaGraduationCap, FaBirthdayCake, FaCity, FaBriefcase, FaAward, FaUsers } from 'react-icons/fa';
 
 const categories = [
   'House Cleaning',
@@ -29,44 +30,57 @@ const certificationOptions = ['Yes', 'No'];
 const workTypeOptions = ['Individual', 'Team'];
 
 const SellerReg = () => {
-  const [name, setName] = useState('');
-  const [serviceDescription, setServiceDescription] = useState('');
-  const [phone, setPhone] = useState('');
-  const [address, setAddress] = useState('');
-  const [education, setEducation] = useState('');
-  const [age, setAge] = useState('');
-  const [city, setCity] = useState('');
-  const [preferredLocation, setPreferredLocation] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState(categories[0]);
-  const [selectedExperience, setSelectedExperience] = useState(experienceLevels[0]);
-  const [hasCertifications, setHasCertifications] = useState(certificationOptions[1]);
-  const [workType, setWorkType] = useState(workTypeOptions[0]);
+  const [formData, setFormData] = useState({
+    name: '',
+    serviceDescription: '',
+    phone: '',
+    address: '',
+    education: '',
+    age: '',
+    city: '',
+    preferredLocation: '',
+    selectedCategory: categories[0],
+    selectedExperience: experienceLevels[0],
+    hasCertifications: certificationOptions[1],
+    workType: workTypeOptions[0],
+  });
   const [profileImage, setProfileImage] = useState(null);
   const [coverImage, setCoverImage] = useState(null);
   const [certificationImage, setCertificationImage] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
 
   const handleImageChange = (event, imageType) => {
     const file = event.target.files[0];
-    switch(imageType) {
-      case 'profile':
-        setProfileImage(file);
-        break;
-      case 'cover':
-        setCoverImage(file);
-        break;
-      case 'certification':
-        setCertificationImage(file);
-        break;
-      default:
-        break;
+    if (file) {
+      switch(imageType) {
+        case 'profile':
+          setProfileImage(file);
+          break;
+        case 'cover':
+          setCoverImage(file);
+          break;
+        case 'certification':
+          setCertificationImage(file);
+          break;
+        default:
+          break;
+      }
     }
   };
 
   const uploadImageToStorage = async (image) => {
     if (!image) return '';
     try {
-      const storageRef = ref(storage, `images/${image.name}`);
+      const storageRef = ref(storage, `images/${Date.now()}-${image.name}`);
       await uploadBytes(storageRef, image);
       return await getDownloadURL(storageRef);
     } catch (error) {
@@ -75,21 +89,29 @@ const SellerReg = () => {
     }
   };
 
-  const registerSeller = async () => {
+  const registerSeller = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    const { name, serviceDescription, phone, address, education, age, city, 
+            preferredLocation, selectedCategory, selectedExperience, 
+            hasCertifications, workType } = formData;
+
     if (!name || !serviceDescription || !phone || !address || 
         !education || !age || !city || !preferredLocation) {
-      alert('Please fill in all fields');
+      alert('Please fill in all required fields');
+      setIsSubmitting(false);
       return;
     }
 
-    const uniqueCode = Math.floor(10000 + Math.random() * 90000).toString();
-    const profileImageUrl = await uploadImageToStorage(profileImage);
-    const coverImageUrl = await uploadImageToStorage(coverImage);
-    const certificationImageUrl = hasCertifications === 'Yes' 
-      ? await uploadImageToStorage(certificationImage)
-      : '';
-
     try {
+      const uniqueCode = Math.floor(10000 + Math.random() * 90000).toString();
+      const [profileImageUrl, coverImageUrl, certificationImageUrl] = await Promise.all([
+        uploadImageToStorage(profileImage),
+        uploadImageToStorage(coverImage),
+        hasCertifications === 'Yes' ? uploadImageToStorage(certificationImage) : Promise.resolve('')
+      ]);
+
       await addDoc(collection(db, "services"), {
         name,
         serviceDescription,
@@ -108,202 +130,303 @@ const SellerReg = () => {
         profileImage: profileImageUrl,
         coverImage: coverImageUrl,
         timestamp: new Date(),
+        status: 'pending' // Add status field for admin approval
       });
 
-      alert(`Registration successful! Your unique code: ${uniqueCode}`);
+      alert(`Registration successful! Your unique code: ${uniqueCode}\nYour profile will be active after admin approval.`);
       navigate('/seller-login');
     } catch (e) {
-      console.error("Firestore error:", e);
-      alert(`Error: ${e.message}`);
+      console.error("Error:", e);
+      alert(`Registration failed: ${e.message}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-900 via-blue-800 to-blue-700">
-      <div className="bg-blue-900 text-white p-4 shadow-md">
-        <h1 className="text-xl font-bold">Become a Seller</h1>
-      </div>
-
-      <div className="p-5">
-        <h2 className="text-2xl font-bold text-white mb-5">Seller Registration</h2>
-
-        {/* Image Upload Section */}
-        <div className="bg-blue-800 rounded-xl p-4 mb-5 shadow-lg">
-          <h3 className="text-lg font-medium text-white mb-3">Upload Your Photos</h3>
-          <div className="flex justify-around">
-            <div className="flex flex-col items-center">
-              <button 
-                onClick={() => document.getElementById('profileInput').click()}
-                className="bg-blue-700 text-white px-4 py-2 rounded-lg mb-2"
-              >
-                Profile Photo
-              </button>
-              <input 
-                id="profileInput"
-                type="file" 
-                onChange={(e) => handleImageChange(e, 'profile')} 
-                className="hidden" 
-              />
-              {profileImage && (
-                <img 
-                  src={URL.createObjectURL(profileImage)} 
-                  alt="Profile" 
-                  className="h-20 w-20 rounded-lg border-2 border-blue-300" 
-                />
-              )}
-            </div>
-            <div className="flex flex-col items-center">
-              <button 
-                onClick={() => document.getElementById('coverInput').click()}
-                className="bg-blue-700 text-white px-4 py-2 rounded-lg mb-2"
-              >
-                Cover Photo
-              </button>
-              <input 
-                id="coverInput"
-                type="file" 
-                onChange={(e) => handleImageChange(e, 'cover')} 
-                className="hidden" 
-              />
-              {coverImage && (
-                <img 
-                  src={URL.createObjectURL(coverImage)} 
-                  alt="Cover" 
-                  className="h-20 w-20 rounded-lg border-2 border-blue-300" 
-                />
-              )}
-            </div>
-          </div>
+    <div className="min-h-screen bg-gradient-to-b from-blue-900 to-blue-700 p-4 md:p-8">
+      <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-2xl overflow-hidden">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-blue-800 to-blue-600 p-6 text-white">
+          <h1 className="text-2xl md:text-3xl font-bold">Become a TaskNest Seller</h1>
+          <p className="text-blue-100 mt-2">Register your service and start earning today</p>
         </div>
 
-        {/* Personal Information Section */}
-        <div className="bg-blue-800 rounded-xl p-4 mb-5 shadow-lg">
-          <h3 className="text-lg font-medium text-white mb-3">Personal Information</h3>
-          {[
-            { value: name, setter: setName, placeholder: "Full Name", icon: "👤" },
-            { value: serviceDescription, setter: setServiceDescription, placeholder: "Service Description", icon: "📝" },
-            { value: phone, setter: setPhone, placeholder: "Telephone Number", icon: "📱", type: "tel" },
-            { value: address, setter: setAddress, placeholder: "Address", icon: "📍" },
-            { value: education, setter: setEducation, placeholder: "Education", icon: "🎓" },
-            { value: age, setter: setAge, placeholder: "Age", icon: "🎂" },
-            { value: city, setter: setCity, placeholder: "City", icon: "🏙️" }
-          ].map((input, index) => (
-            <div key={index} className="mb-3">
-              <div className="flex items-center bg-blue-700 rounded-lg p-2">
-                <span className="mr-2">{input.icon}</span>
-                <input
-                  type={input.type || "text"}
-                  value={input.value}
-                  onChange={(e) => input.setter(e.target.value)}
-                  placeholder={input.placeholder}
-                  className="w-full bg-transparent text-white placeholder-blue-200 outline-none"
-                />
+        <form onSubmit={registerSeller} className="p-6 md:p-8">
+          {/* Progress Steps */}
+          <div className="flex justify-between mb-8">
+            {['Personal Info', 'Service Details', 'Verification'].map((step, index) => (
+              <div key={index} className="flex flex-col items-center">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center 
+                  ${index < 2 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'}`}>
+                  {index + 1}
+                </div>
+                <span className="text-sm mt-2 text-gray-600">{step}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Image Upload Section */}
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+              <FaCamera className="mr-2 text-blue-600" /> Profile Images
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="border-2 border-dashed border-blue-200 rounded-xl p-4 text-center hover:border-blue-400 transition">
+                <label className="cursor-pointer">
+                  <div className="flex flex-col items-center">
+                    <div className="w-24 h-24 rounded-full bg-blue-100 flex items-center justify-center mb-3">
+                      {profileImage ? (
+                        <img src={URL.createObjectURL(profileImage)} alt="Profile" className="w-full h-full rounded-full object-cover" />
+                      ) : (
+                        <FaUser className="text-blue-400 text-3xl" />
+                      )}
+                    </div>
+                    <span className="text-blue-600 font-medium">Upload Profile Photo</span>
+                    <input 
+                      type="file" 
+                      onChange={(e) => handleImageChange(e, 'profile')} 
+                      className="hidden" 
+                      accept="image/*"
+                    />
+                  </div>
+                </label>
+              </div>
+              <div className="border-2 border-dashed border-blue-200 rounded-xl p-4 text-center hover:border-blue-400 transition">
+                <label className="cursor-pointer">
+                  <div className="flex flex-col items-center">
+                    <div className="w-full h-24 bg-blue-100 rounded-lg flex items-center justify-center mb-3">
+                      {coverImage ? (
+                        <img src={URL.createObjectURL(coverImage)} alt="Cover" className="w-full h-full rounded-lg object-cover" />
+                      ) : (
+                        <FaFileAlt className="text-blue-400 text-3xl" />
+                      )}
+                    </div>
+                    <span className="text-blue-600 font-medium">Upload Cover Photo</span>
+                    <input 
+                      type="file" 
+                      onChange={(e) => handleImageChange(e, 'cover')} 
+                      className="hidden" 
+                      accept="image/*"
+                    />
+                  </div>
+                </label>
               </div>
             </div>
-          ))}
-        </div>
+          </div>
 
-        {/* Service Category Section */}
-        <div className="bg-blue-800 rounded-xl p-4 mb-5 shadow-lg">
-          <h3 className="text-lg font-medium text-white mb-3">Service Category</h3>
-          <select 
-            value={selectedCategory} 
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="w-full bg-blue-700 text-white p-3 rounded-lg border border-blue-300"
-          >
-            {categories.map((category) => (
-              <option key={category} value={category}>{category}</option>
-            ))}
-          </select>
-        </div>
+          {/* Personal Information */}
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+              <FaUser className="mr-2 text-blue-600" /> Personal Information
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[
+                { name: 'name', icon: <FaUser className="text-blue-500" />, placeholder: 'Full Name', type: 'text' },
+                { name: 'phone', icon: <FaMapMarkerAlt className="text-blue-500" />, placeholder: 'Phone Number', type: 'tel' },
+                { name: 'education', icon: <FaGraduationCap className="text-blue-500" />, placeholder: 'Education', type: 'text' },
+                { name: 'age', icon: <FaBirthdayCake className="text-blue-500" />, placeholder: 'Age', type: 'number' },
+                { name: 'city', icon: <FaCity className="text-blue-500" />, placeholder: 'City', type: 'text' },
+                { name: 'address', icon: <FaMapMarkerAlt className="text-blue-500" />, placeholder: 'Full Address', type: 'text' },
+              ].map((field, index) => (
+                <div key={index} className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    {field.icon}
+                  </div>
+                  <input
+                    name={field.name}
+                    type={field.type}
+                    value={formData[field.name]}
+                    onChange={handleChange}
+                    placeholder={field.placeholder}
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                    required
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
 
-        {/* Experience Section */}
-        <div className="bg-blue-800 rounded-xl p-4 mb-5 shadow-lg">
-          <h3 className="text-lg font-medium text-white mb-3">Years of Experience</h3>
-          <select 
-            value={selectedExperience} 
-            onChange={(e) => setSelectedExperience(e.target.value)}
-            className="w-full bg-blue-700 text-white p-3 rounded-lg border border-blue-300"
-          >
-            {experienceLevels.map((level) => (
-              <option key={level} value={level}>{level}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Certifications Section */}
-        <div className="bg-blue-800 rounded-xl p-4 mb-5 shadow-lg">
-          <h3 className="text-lg font-medium text-white mb-3">Professional Certifications</h3>
-          <select 
-            value={hasCertifications} 
-            onChange={(e) => setHasCertifications(e.target.value)}
-            className="w-full bg-blue-700 text-white p-3 rounded-lg border border-blue-300 mb-3"
-          >
-            {certificationOptions.map((option) => (
-              <option key={option} value={option}>{option}</option>
-            ))}
-          </select>
-          {hasCertifications === 'Yes' && (
-            <div className="mt-3">
-              <button 
-                onClick={() => document.getElementById('certificationInput').click()}
-                className="bg-blue-700 text-white px-4 py-2 rounded-lg mb-2"
-              >
-                Upload Certification
-              </button>
-              <input 
-                id="certificationInput"
-                type="file" 
-                onChange={(e) => handleImageChange(e, 'certification')} 
-                className="hidden" 
+          {/* Service Description */}
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+              <FaBriefcase className="mr-2 text-blue-600" /> Service Details
+            </h2>
+            <div className="mb-4">
+              <label className="block text-gray-700 mb-2">Service Description</label>
+              <textarea
+                name="serviceDescription"
+                value={formData.serviceDescription}
+                onChange={handleChange}
+                placeholder="Describe your service in detail..."
+                rows="4"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                required
               />
-              {certificationImage && (
-                <img 
-                  src={URL.createObjectURL(certificationImage)} 
-                  alt="Certification" 
-                  className="h-20 w-20 rounded-lg border-2 border-blue-300" 
-                />
+            </div>
+          </div>
+
+          {/* Service Category & Experience */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div>
+              <label className="block text-gray-700 mb-2">Service Category</label>
+              <div className="relative">
+                <select 
+                  name="selectedCategory"
+                  value={formData.selectedCategory}
+                  onChange={handleChange}
+                  className="w-full pl-4 pr-10 py-3 border border-gray-300 rounded-lg appearance-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition bg-white"
+                >
+                  {categories.map((category) => (
+                    <option key={category} value={category}>{category}</option>
+                  ))}
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                  <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <div>
+              <label className="block text-gray-700 mb-2">Years of Experience</label>
+              <div className="relative">
+                <select 
+                  name="selectedExperience"
+                  value={formData.selectedExperience}
+                  onChange={handleChange}
+                  className="w-full pl-4 pr-10 py-3 border border-gray-300 rounded-lg appearance-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition bg-white"
+                >
+                  {experienceLevels.map((level) => (
+                    <option key={level} value={level}>{level}</option>
+                  ))}
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                  <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Work Type & Certifications */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div>
+              <label className="block text-gray-700 mb-2">Work Type</label>
+              <div className="relative">
+                <select 
+                  name="workType"
+                  value={formData.workType}
+                  onChange={handleChange}
+                  className="w-full pl-4 pr-10 py-3 border border-gray-300 rounded-lg appearance-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition bg-white"
+                >
+                  {workTypeOptions.map((option) => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                  <FaUsers className="text-gray-400" />
+                </div>
+              </div>
+            </div>
+            <div>
+              <label className="block text-gray-700 mb-2">Professional Certifications</label>
+              <div className="relative">
+                <select 
+                  name="hasCertifications"
+                  value={formData.hasCertifications}
+                  onChange={handleChange}
+                  className="w-full pl-4 pr-10 py-3 border border-gray-300 rounded-lg appearance-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition bg-white"
+                >
+                  {certificationOptions.map((option) => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                  <FaAward className="text-gray-400" />
+                </div>
+              </div>
+              {formData.hasCertifications === 'Yes' && (
+                <div className="mt-4">
+                  <label className="block text-gray-700 mb-2">Upload Certification</label>
+                  <div className="border-2 border-dashed border-blue-200 rounded-lg p-4 text-center hover:border-blue-400 transition">
+                    <label className="cursor-pointer flex flex-col items-center">
+                      <FaFileAlt className="text-blue-400 text-3xl mb-2" />
+                      <span className="text-blue-600 font-medium">
+                        {certificationImage ? certificationImage.name : 'Click to upload certification'}
+                      </span>
+                      <input 
+                        type="file" 
+                        onChange={(e) => handleImageChange(e, 'certification')} 
+                        className="hidden" 
+                        accept="image/*,application/pdf"
+                      />
+                    </label>
+                  </div>
+                </div>
               )}
             </div>
-          )}
-        </div>
-
-        {/* Work Type Section */}
-        <div className="bg-blue-800 rounded-xl p-4 mb-5 shadow-lg">
-          <h3 className="text-lg font-medium text-white mb-3">Work Type</h3>
-          <select 
-            value={workType} 
-            onChange={(e) => setWorkType(e.target.value)}
-            className="w-full bg-blue-700 text-white p-3 rounded-lg border border-blue-300"
-          >
-            {workTypeOptions.map((option) => (
-              <option key={option} value={option}>{option}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Preferred Location Section */}
-        <div className="bg-blue-800 rounded-xl p-4 mb-5 shadow-lg">
-          <h3 className="text-lg font-medium text-white mb-3">Preferred Working Locations</h3>
-          <div className="flex items-center bg-blue-700 rounded-lg p-2">
-            <span className="mr-2">🌍</span>
-            <input
-              type="text"
-              value={preferredLocation}
-              onChange={(e) => setPreferredLocation(e.target.value)}
-              placeholder="City/Area"
-              className="w-full bg-transparent text-white placeholder-blue-200 outline-none"
-            />
           </div>
-        </div>
 
-        {/* Register Button */}
-        <button 
-          onClick={registerSeller}
-          className="w-full bg-white text-blue-900 font-bold py-3 px-6 rounded-xl shadow-lg hover:bg-gray-100 transition-colors"
-        >
-          REGISTER AS SELLER
-        </button>
+          {/* Preferred Location */}
+          <div className="mb-8">
+            <label className="block text-gray-700 mb-2">Preferred Working Locations</label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <FaMapMarkerAlt className="text-blue-500" />
+              </div>
+              <input
+                name="preferredLocation"
+                type="text"
+                value={formData.preferredLocation}
+                onChange={handleChange}
+                placeholder="Enter cities or areas where you provide service"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                required
+              />
+            </div>
+          </div>
+
+          {/* Terms and Conditions */}
+          <div className="mb-8">
+            <div className="flex items-start">
+              <div className="flex items-center h-5">
+                <input 
+                  id="terms" 
+                  name="terms" 
+                  type="checkbox" 
+                  className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
+                  required
+                />
+              </div>
+              <label htmlFor="terms" className="ml-2 block text-sm text-gray-700">
+                I agree to the <a href="#" className="text-blue-600 hover:underline">Terms and Conditions</a> and 
+                <a href="#" className="text-blue-600 hover:underline"> Privacy Policy</a> of TaskNest
+              </label>
+            </div>
+          </div>
+
+          {/* Submit Button */}
+          <div className="flex justify-center">
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className={`w-full md:w-1/2 py-4 px-6 rounded-xl text-white font-bold shadow-lg transition 
+                ${isSubmitting ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'}`}
+            >
+              {isSubmitting ? (
+                <span className="flex items-center justify-center">
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Processing...
+                </span>
+              ) : 'COMPLETE REGISTRATION'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

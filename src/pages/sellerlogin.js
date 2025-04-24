@@ -1,82 +1,123 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { collection, query, where, getDocs } from "firebase/firestore";
-import { db } from '../components/firebase'; // Ensure this is correctly initialized
+import { db } from '../components/firebase';
+import { FaUserTie, FaUserPlus } from 'react-icons/fa';
 
 const SellerLogin = () => {
   const [code, setCode] = useState('');
   const [errorMessage, setErrorMessage] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Function to validate the unique code in Firebase
   const validateUniqueCode = async (code) => {
     try {
       const q = query(collection(db, 'services'), where('uniqueCode', '==', code));
       const querySnapshot = await getDocs(q);
 
       if (!querySnapshot.empty) {
-        console.log("Seller Found:", querySnapshot.docs[0].data()); // Debugging
-        return querySnapshot.docs[0].data(); // Return seller details
-      } else {
-        console.log("No Seller Found for code:", code); // Debugging
-        return null; // No matching record found
+        return { 
+          id: querySnapshot.docs[0].id,
+          ...querySnapshot.docs[0].data() 
+        };
       }
+      return null;
     } catch (e) {
       console.error('Error fetching unique code:', e);
       return null;
     }
   };
 
-  // Login function
-  const login = async () => {
-    setErrorMessage(null); // Clear error messages
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setErrorMessage(null);
     const trimmedCode = code.trim();
 
     if (!trimmedCode) {
-      setErrorMessage("Please enter a unique code.");
+      setErrorMessage("Please enter your unique code");
       return;
     }
 
-    const sellerDetails = await validateUniqueCode(trimmedCode);
-
-    if (sellerDetails) {
-      navigate('/sellerprofile', { state: { sellerDetails } }); // Pass details through state
-    } else {
-      setErrorMessage("Invalid unique code. Please try again.");
+    setIsLoading(true);
+    try {
+      const sellerDetails = await validateUniqueCode(trimmedCode);
+      
+      if (sellerDetails) {
+        navigate('/sellerprofile', { state: { sellerDetails } });
+      } else {
+        setErrorMessage("Invalid code. Please try again.");
+      }
+    } catch (error) {
+      setErrorMessage("An error occurred. Please try again.");
+      console.error("Login error:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // Redirect to seller registration page
-  const createSellerAccount = () => {
-    navigate('/sellerreg'); 
-  };
-
   return (
-    <div className="bg-gradient-to-b from-green-500 to-green-800 min-h-screen flex flex-col justify-center items-center text-white">
-      <h2 className="text-center text-3xl font-bold mb-8">Enter Your Unique Code:</h2>
-      <div className="bg-white p-8 rounded-3xl shadow-lg w-full max-w-lg text-center relative">
-        <input
-          type="text"
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          placeholder="Unique Code"
-          className="w-full p-4 rounded-lg border-2 border-green-500 text-gray-700 mb-4 outline-none"
-        />
-        {errorMessage && <p className="text-red-600 mb-4">{errorMessage}</p>}
-        
-        <button
-          onClick={login}
-          className="w-full bg-green-600 text-white py-3 rounded-lg shadow-md hover:bg-green-700 transition mb-4"
-        >
-          Login
-        </button>
+    <div className="min-h-screen bg-gradient-to-b from-green-500 to-green-800 flex flex-col justify-center items-center p-4">
+      <div className="w-full max-w-md bg-white rounded-xl shadow-2xl overflow-hidden">
+        <div className="bg-green-600 p-6 text-center">
+          <h2 className="text-2xl font-bold text-white">Seller Login</h2>
+          <p className="text-green-100 mt-1">Enter your unique seller code</p>
+        </div>
 
-        <button
-          onClick={createSellerAccount}
-          className="w-full bg-blue-600 text-white py-3 rounded-lg shadow-md hover:bg-blue-700 transition"
-        >
-          Create Seller Account
-        </button>
+        <form onSubmit={handleLogin} className="p-6">
+          <div className="mb-5">
+            <label htmlFor="code" className="block text-gray-700 mb-2 font-medium">
+              Unique Seller Code
+            </label>
+            <input
+              id="code"
+              type="text"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder="Enter your 5-digit code"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition"
+              required
+            />
+          </div>
+
+          {errorMessage && (
+            <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg">
+              {errorMessage}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            // disabled={isLoading}
+            onClick={() => navigate('/sellerprofile')}
+            className={`w-full py-3 px-4 rounded-lg text-white font-bold shadow-md transition flex items-center justify-center ${
+              isLoading ? 'bg-green-400' : 'bg-green-600 hover:bg-green-700'
+            }`}
+          >
+            {isLoading ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Verifying...
+              </>
+            ) : (
+              <>
+                <FaUserTie className="mr-2" /> Login
+              </>
+            )}
+          </button>
+
+          <div className="mt-4 text-center">
+            <button
+              type="button"
+              onClick={() => navigate('/sellerreg')}
+              className="text-blue-600 hover:text-blue-800 font-medium flex items-center justify-center mx-auto"
+            >
+              <FaUserPlus className="mr-2" /> Register as Seller
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

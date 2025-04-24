@@ -1,130 +1,108 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { db } from '../components/firebase';
-import { useLocation } from 'react-router-dom';
-import {
-  collection,
-  query,
-  where,
-  getDocs,
-  updateDoc,
-  doc,
+import { 
+  collection, 
+  query, 
+  where, 
+  getDocs, 
+  updateDoc, 
+  doc, 
   serverTimestamp,
-  addDoc
+  addDoc 
 } from 'firebase/firestore';
-import {
-  Typography,
-  Grid,
-  Card,
-  CardContent,
-  Button,
-  Box,
-  Avatar,
-  TextField,
-  InputAdornment,
-  IconButton,
-  ToggleButtonGroup,
-  ToggleButton,
-  Snackbar,
-  Alert,
-  CircularProgress
-} from '@mui/material';
-import {
-  Search,
-  Clear,
-  Star,
-  Work,
-  LocationCity,
-  Place,
-  LocationOn,
-  BusinessCenter,
-  School,
-  Timeline,
-  ConfirmationNumber,
-  Phone,
-  Person
-} from '@mui/icons-material';
+import { 
+  FaUser, 
+  FaBriefcase, 
+  FaMapMarkerAlt, 
+  FaGraduationCap, 
+  FaPhone,
+  FaStar,
+  FaSearch,
+  FaTimes,
+  FaCheck,
+  FaTimesCircle,
+  FaHistory
+} from 'react-icons/fa';
 
 const SellerProfile = () => {
   const location = useLocation();
-  const sellerDetails = location.state?.sellerDetails || {};
+  const navigate = useNavigate();
+  const { sellerDetails } = location.state || {};
   const [orderStatus, setOrderStatus] = useState('pending');
   const [orders, setOrders] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
-  const [snackbar, setSnackbar] = useState({
-    open: false,
+  const [notification, setNotification] = useState({
+    show: false,
     message: '',
-    severity: 'success'
+    type: 'success'
   });
 
-  const primaryColor = '#0d47a1';
-  const secondaryColor = '#1565c0';
-
   useEffect(() => {
-    const fetchOrders = async () => {
-      if (!sellerDetails.uid) return;
-      setLoading(true);
+    if (!sellerDetails?.id) {
+      navigate('/seller-login');
+      return;
+    }
 
+    const fetchOrders = async () => {
+      setLoading(true);
       try {
         const q = query(
           collection(db, 'orders'),
-          where('sellerId', '==', sellerDetails.uid),
+          where('sellerId', '==', sellerDetails.id),
           where('status', '==', orderStatus)
         );
         const querySnapshot = await getDocs(q);
-        const ordersData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const ordersData = querySnapshot.docs.map(doc => ({ 
+          id: doc.id, 
+          ...doc.data() 
+        }));
         setOrders(ordersData);
       } catch (error) {
-        setSnackbar({
-          open: true,
-          message: `Error fetching orders: ${error.message}`,
-          severity: 'error'
-        });
+        showNotification(`Error: ${error.message}`, 'error');
       } finally {
         setLoading(false);
       }
     };
 
     fetchOrders();
-  }, [orderStatus, sellerDetails.uid]);
+  }, [orderStatus, sellerDetails?.id, navigate]);
+
+  const showNotification = (message, type = 'success') => {
+    setNotification({ show: true, message, type });
+    setTimeout(() => {
+      setNotification(prev => ({ ...prev, show: false }));
+    }, 5000);
+  };
 
   const updateOrderStatus = async (orderId, status) => {
     try {
       const orderRef = doc(db, 'orders', orderId);
-      await updateDoc(orderRef, {
-      });
+      await updateDoc(orderRef, { status });
 
-      const orderDoc = await getDocs(query(collection(db, 'orders'), where('__name__', '==', orderId)));
-      const orderData = orderDoc.docs[0].data();
+      // Get order details for notification
+      const orderQuery = query(collection(db, 'orders'), where('__name__', '==', orderId));
+      const orderSnapshot = await getDocs(orderQuery);
+      const orderData = orderSnapshot.docs[0]?.data();
 
-      await addDoc(collection(db, 'notifications'), {
-        recipientId: orderData.userId,
-        senderId: sellerDetails.uid,
-        type: 'order_update',
-        orderId,
-        message: `Your order status has been updated to ${status}`,
-        timestamp: serverTimestamp(),
-        read: false
-      });
+      if (orderData?.userId) {
+        await addDoc(collection(db, 'notifications'), {
+          recipientId: orderData.userId,
+          senderId: sellerDetails.id,
+          type: 'order_update',
+          orderId,
+          message: `Your order status has been updated to ${status}`,
+          timestamp: serverTimestamp(),
+          read: false
+        });
+      }
 
-      setOrders(prevOrders => prevOrders.filter(order => order.id !== orderId));
-
-      setSnackbar({
-        open: true,
-        message: `Order status updated to ${status}`,
-        severity: status === 'accepted' ? 'success' : 'error'
-      });
+      setOrders(prev => prev.filter(order => order.id !== orderId));
+      showNotification(`Order ${status} successfully`, 'success');
     } catch (error) {
-      setSnackbar({
-        open: true,
-        message: `Error updating order: ${error.message}`,
-        severity: 'error'
-      });
+      showNotification(`Failed to update order: ${error.message}`, 'error');
     }
-  };
-
-  const handleCloseSnackbar = () => {
-    setSnackbar(prev => ({ ...prev, open: false }));
   };
 
   const filteredOrders = orders.filter(order => {
@@ -138,163 +116,170 @@ const SellerProfile = () => {
     );
   });
 
+  if (!sellerDetails) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <div className="text-center p-6 bg-white rounded-lg shadow-md">
+          <h2 className="text-xl font-bold mb-4">Seller Not Found</h2>
+          <p className="mb-4">Please login with a valid seller code</p>
+          <button
+            onClick={() => navigate('/seller-login')}
+            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+          >
+            Go to Seller Login
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <Box sx={{
-      minHeight: '100vh',
-      background: `linear-gradient(to bottom, ${primaryColor}, ${secondaryColor}, #1976d2)`,
-      color: 'white'
-    }}>
-      <Box sx={{ backgroundColor: primaryColor, padding: 2, boxShadow: 3, position: 'sticky', top: 0 }}>
-        <Typography variant="h5" sx={{ fontWeight: 'bold', textAlign: 'center' }}>
-          Seller Dashboard
-        </Typography>
-      </Box>
+    <div className="min-h-screen bg-gradient-to-b from-blue-900 to-blue-700 text-white">
+      {/* Header */}
+      <div className="bg-blue-800 p-4 shadow-md sticky top-0 z-10">
+        <h1 className="text-xl font-bold text-center">Seller Dashboard</h1>
+      </div>
 
-      <Box sx={{ backgroundColor: primaryColor, padding: 3, borderRadius: '0 0 30px 30px', textAlign: 'center' }}>
-        <Avatar
-          src={sellerDetails.profileImage}
-          sx={{ width: 120, height: 120, border: '3px solid white', fontSize: 60 }}
-        >
-          {!sellerDetails.profileImage && <Person fontSize="inherit" />}
-        </Avatar>
-        <Typography variant="h5" sx={{ mt: 2, fontWeight: 'bold' }}>
-          {sellerDetails.name || 'No Name'}
-        </Typography>
-        <Typography variant="subtitle1" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-          {sellerDetails.service || 'No Service'}
-        </Typography>
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 1 }}>
-          <Star sx={{ color: 'gold', fontSize: 20 }} />
-          <Typography variant="body1" sx={{ ml: 0.5 }}>
-            {sellerDetails.rating?.toFixed(1) || '0.0'}
-          </Typography>
-          <Typography variant="body1" sx={{ ml: 0.5, color: 'rgba(255, 255, 255, 0.7)' }}>
-            ({sellerDetails.reviewsCount || 0})
-          </Typography>
-        </Box>
-      </Box>
-
-      <Card sx={{ mx: 2, mt: 2, borderRadius: 3, boxShadow: 3 }}>
-        <CardContent>
-          <DetailRow icon={<Work />} label="Category" value={sellerDetails.category} />
-          <DetailRow icon={<LocationCity />} label="City" value={sellerDetails.city} />
-          <DetailRow icon={<Place />} label="Address" value={sellerDetails.address} />
-          <DetailRow icon={<LocationOn />} label="Preferred Location" value={sellerDetails.preferredLocation} />
-          <DetailRow icon={<BusinessCenter />} label="Work Type" value={sellerDetails.workType} />
-          <DetailRow icon={<School />} label="Education" value={sellerDetails.education} />
-          <DetailRow icon={<Timeline />} label="Experience" value={sellerDetails.experience} />
-          <DetailRow icon={<ConfirmationNumber />} label="Unique Code" value={sellerDetails.uniqueCode} />
-          {sellerDetails.phone && (
-            <Box component="a" href={`tel:${sellerDetails.phone}`} sx={{ display: 'flex', alignItems: 'center', mt: 2, textDecoration: 'none' }}>
-              <Phone sx={{ mr: 2 }} />
-              <Typography variant="body2">{sellerDetails.phone}</Typography>
-            </Box>
+      {/* Profile Section */}
+      <div className="p-6 text-center bg-blue-800 rounded-b-3xl">
+        <div className="w-24 h-24 mx-auto rounded-full border-4 border-white overflow-hidden">
+          {sellerDetails.profileImage ? (
+            <img 
+              src={sellerDetails.profileImage} 
+              alt="Profile" 
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-blue-600 flex items-center justify-center">
+              <FaUser className="text-3xl text-white" />
+            </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+        <h2 className="text-xl font-bold mt-3">{sellerDetails.name}</h2>
+        <p className="text-blue-200">{sellerDetails.category}</p>
+        <div className="flex items-center justify-center mt-1">
+          <FaStar className="text-yellow-400 mr-1" />
+          <span>{sellerDetails.rating?.toFixed(1) || '0.0'}</span>
+          <span className="text-blue-300 ml-1">({sellerDetails.reviewsCount || 0})</span>
+        </div>
+      </div>
 
-      <Box sx={{ mx: 2, mt: 2 }}>
-        <TextField
-          fullWidth
-          placeholder="Search Orders..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <Search />
-              </InputAdornment>
-            ),
-            endAdornment: searchQuery && (
-              <InputAdornment position="end">
-                <IconButton onClick={() => setSearchQuery('')}>
-                  <Clear />
-                </IconButton>
-              </InputAdornment>
-            ),
-            sx: {
-              backgroundColor: 'white',
-              borderRadius: 30,
-            }
-          }}
-        />
-      </Box>
+      {/* Seller Details */}
+      <div className="m-4 bg-white rounded-xl shadow-md overflow-hidden">
+        <div className="p-4 text-gray-800">
+          <DetailRow icon={<FaBriefcase />} label="Service" value={sellerDetails.serviceDescription} />
+          <DetailRow icon={<FaMapMarkerAlt />} label="Location" value={`${sellerDetails.city}, ${sellerDetails.address}`} />
+          <DetailRow icon={<FaGraduationCap />} label="Education" value={sellerDetails.education} />
+          <DetailRow icon={<FaHistory />} label="Experience" value={sellerDetails.experience} />
+          {sellerDetails.phone && (
+            <div className="flex items-center mt-3">
+              <FaPhone className="text-blue-600 mr-3" />
+              <a href={`tel:${sellerDetails.phone}`} className="text-blue-600 hover:underline">
+                {sellerDetails.phone}
+              </a>
+            </div>
+          )}
+        </div>
+      </div>
 
-      <Box sx={{ mx: 2, mt: 2 }}>
-        <ToggleButtonGroup
-          value={orderStatus}
-          exclusive
-          onChange={(e, newStatus) => newStatus && setOrderStatus(newStatus)}
-          fullWidth
-          sx={{ borderRadius: 30 }}
-        >
-          <ToggleButton value="pending">Pending</ToggleButton>
-          <ToggleButton value="accepted">Accepted</ToggleButton>
-          <ToggleButton value="rejected">Rejected</ToggleButton>
-        </ToggleButtonGroup>
-      </Box>
+      {/* Order Management */}
+      <div className="m-4">
+        {/* Search Bar */}
+        <div className="relative mb-4">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <FaSearch className="text-gray-400" />
+          </div>
+          <input
+            type="text"
+            placeholder="Search orders..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center"
+            >
+              <FaTimes className="text-gray-400 hover:text-gray-600" />
+            </button>
+          )}
+        </div>
 
-      <Box sx={{ mx: 2, mt: 2, mb: 4 }}>
+        {/* Status Tabs */}
+        <div className="flex border-b border-blue-300 mb-4">
+          {['pending', 'accepted', 'rejected'].map((status) => (
+            <button
+              key={status}
+              onClick={() => setOrderStatus(status)}
+              className={`px-4 py-2 font-medium capitalize ${orderStatus === status 
+                ? 'text-blue-400 border-b-2 border-blue-400' 
+                : 'text-blue-200 hover:text-blue-300'}`}
+            >
+              {status}
+            </button>
+          ))}
+        </div>
+
+        {/* Orders List */}
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-            <CircularProgress color="inherit" />
-          </Box>
+          <div className="flex justify-center my-8">
+            <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-400"></div>
+          </div>
         ) : filteredOrders.length === 0 ? (
-          <Typography variant="body1" sx={{ textAlign: 'center', mt: 2 }}>
-            {searchQuery ? 'No orders match your search' : `No ${orderStatus} orders found`}
-          </Typography>
+          <div className="text-center py-8 text-blue-200">
+            {searchQuery ? 'No matching orders found' : `No ${orderStatus} orders`}
+          </div>
         ) : (
-          <Grid container spacing={2}>
+          <div className="space-y-3">
             {filteredOrders.map(order => (
-              <Grid item xs={12} key={order.id}>
-                {/* Replace below with your own OrderCard component */}
-                <Card sx={{ p: 2, borderRadius: 3 }}>
-                  <Typography variant="h6">{order.orderName}</Typography>
-                  <Typography>{order.description}</Typography>
-                  <Button
-                    variant="contained"
-                    onClick={() => updateOrderStatus(order.id, 'accepted')}
-                    sx={{ mt: 1 }}
-                  >
-                    Accept
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    color="error"
-                    onClick={() => updateOrderStatus(order.id, 'rejected')}
-                    sx={{ mt: 1, ml: 2 }}
-                  >
-                    Reject
-                  </Button>
-                </Card>
-              </Grid>
+              <div key={order.id} className="bg-white rounded-lg shadow-md p-4 text-gray-800">
+                <h3 className="font-bold">{order.orderName}</h3>
+                <p className="text-gray-600 text-sm mt-1">{order.description}</p>
+                <div className="flex justify-end mt-3 space-x-2">
+                  {orderStatus === 'pending' && (
+                    <>
+                      <button
+                        onClick={() => updateOrderStatus(order.id, 'accepted')}
+                        className="bg-green-500 text-white px-3 py-1 rounded flex items-center"
+                      >
+                        <FaCheck className="mr-1" /> Accept
+                      </button>
+                      <button
+                        onClick={() => updateOrderStatus(order.id, 'rejected')}
+                        className="bg-red-500 text-white px-3 py-1 rounded flex items-center"
+                      >
+                        <FaTimesCircle className="mr-1" /> Reject
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
             ))}
-          </Grid>
+          </div>
         )}
-      </Box>
+      </div>
 
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Box>
+      {/* Notification */}
+      {notification.show && (
+        <div className={`fixed bottom-4 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-lg shadow-lg ${
+          notification.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+        } text-white`}>
+          {notification.message}
+        </div>
+      )}
+    </div>
   );
 };
 
 const DetailRow = ({ icon, label, value }) => (
-  <Box sx={{ display: 'flex', alignItems: 'center', my: 1 }}>
-    <Box sx={{ mr: 2 }}>{icon}</Box>
-    <Box>
-      <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{label}:</Typography>
-      <Typography variant="body2">{value || 'Not specified'}</Typography>
-    </Box>
-  </Box>
+  <div className="flex items-start mb-3">
+    <div className="text-blue-600 mt-1 mr-3">{icon}</div>
+    <div>
+      <p className="font-medium text-gray-700">{label}</p>
+      <p className="text-gray-600">{value || 'Not specified'}</p>
+    </div>
+  </div>
 );
 
 export default SellerProfile;
