@@ -8,8 +8,6 @@ function Navbar() {
       <div className="flex gap-6">
         <Link to="/home" className="hover:text-green-200 transition duration-200">Home</Link>
         <Link to="/profile" className="hover:text-green-200 transition duration-200">Profile</Link>
-        <Link to="/notifications" className="hover:text-green-200 transition duration-200">Notifications</Link>
-        <Link to="/search" className="hover:text-green-200 transition duration-200">Search</Link>
       </div>
     </nav>
   );

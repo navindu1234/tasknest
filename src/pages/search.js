@@ -33,12 +33,15 @@ function Search() {
           // Fetch cover photo URL if it exists
           if (data.coverPhoto) {
             try {
-              const imageUrl = await getDownloadURL(ref(storage, data.coverPhoto));
+              const imageRef = ref(storage, data.coverPhoto);
+              const imageUrl = await getDownloadURL(imageRef);
               data.coverPhoto = imageUrl;
             } catch (error) {
               console.error("Error fetching image:", error);
-              data.coverPhoto = "https://via.placeholder.com/400"; // Fallback image
+              data.coverPhoto = "https://via.placeholder.com/400";
             }
+          } else {
+            data.coverPhoto = "https://via.placeholder.com/400";
           }
 
           sellersData.push({ id: doc.id, ...data });
@@ -166,22 +169,31 @@ function Search() {
         </div>
 
         {loading ? (
-          <p className="text-center mt-4">Loading...</p>
+          <div className="flex justify-center items-center h-64">
+            <p className="text-center mt-4">Loading...</p>
+          </div>
         ) : filteredSellers.length === 0 ? (
-          <p className="text-center mt-4">No results found.</p>
+          <div className="flex justify-center items-center h-64">
+            <p className="text-center mt-4">No results found.</p>
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
             {filteredSellers.map((seller) => (
               <div
                 key={seller.id}
-                className="bg-white rounded-lg shadow-md p-4 text-black"
+                className="bg-white rounded-lg shadow-md p-4 text-black hover:shadow-lg transition-shadow duration-300"
               >
                 {/* Seller Cover Photo */}
-                <img
-                  src={seller.coverPhoto || "https://via.placeholder.com/400"}
-                  alt={seller.name}
-                  className="w-full h-48 object-cover rounded-md"
-                />
+                <div className="relative h-48 w-full overflow-hidden rounded-md mb-4">
+                  <img
+                    src={seller.coverImage}
+                    alt={seller.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.src = "https://via.placeholder.com/400";
+                    }}
+                  />
+                </div>
 
                 {/* Seller Name */}
                 <h2 className="text-xl font-bold mt-2">{seller.name}</h2>
@@ -206,7 +218,7 @@ function Search() {
 
                 {/* Order Button */}
                 <button
-                  className="bg-green-600 text-white w-full mt-4 py-2 rounded-md hover:bg-green-700"
+                  className="bg-green-600 text-white w-full mt-4 py-2 rounded-md hover:bg-green-700 transition-colors duration-300"
                   onClick={() => handleOrderClick(seller.id)}
                 >
                   Order Now

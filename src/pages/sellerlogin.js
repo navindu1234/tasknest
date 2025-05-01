@@ -87,8 +87,7 @@ const SellerLogin = () => {
 
           <button
             type="submit"
-            // disabled={isLoading}
-            onClick={() => navigate('/sellerprofile')}
+            disabled={isLoading}
             className={`w-full py-3 px-4 rounded-lg text-white font-bold shadow-md transition flex items-center justify-center ${
               isLoading ? 'bg-green-400' : 'bg-green-600 hover:bg-green-700'
             }`}

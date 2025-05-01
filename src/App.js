@@ -40,6 +40,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/sellerlogin" element={<SellerLogin />} />
+          <Route path="/sellerprofile" element={<SellerProfile />} />
           <Route path="/sellerreg" element={<SellerReg />} />
           <Route path="/search/:category" element={<Search />} />
 

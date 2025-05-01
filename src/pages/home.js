@@ -19,25 +19,25 @@ function Home() {
   ];
 
   const categoryImages = [
-    `${process.env.PUBLIC_URL}/cleaning.jpg`,
-    `${process.env.PUBLIC_URL}/garage.jpg`,
-    `${process.env.PUBLIC_URL}/electrician.jpg`,
-    `${process.env.PUBLIC_URL}/gardening.jpg`,
-    `${process.env.PUBLIC_URL}/pest.jpg`,
-    `${process.env.PUBLIC_URL}/moving.jpg`,
-    `${process.env.PUBLIC_URL}/laundry.jpg`,
-    `${process.env.PUBLIC_URL}/painting.jpg`,
-    `${process.env.PUBLIC_URL}/car.jpg`,
-    `${process.env.PUBLIC_URL}/cooking.jpg`,
-    `${process.env.PUBLIC_URL}/renovation.jpg`,
-    `${process.env.PUBLIC_URL}/plumbing.jpg`,
-    `${process.env.PUBLIC_URL}/ac.jpg`
+    `${process.env.PUBLIC_URL}/image1.png`,
+    `${process.env.PUBLIC_URL}/image2.png`,
+    `${process.env.PUBLIC_URL}/image3.png`,
+    `${process.env.PUBLIC_URL}/image4.png`,
+    `${process.env.PUBLIC_URL}/image5.png`,
+    `${process.env.PUBLIC_URL}/image6.png`,
+    `${process.env.PUBLIC_URL}/image7.png`,
+    `${process.env.PUBLIC_URL}/image8.png`,
+    `${process.env.PUBLIC_URL}/image9.png`,
+    `${process.env.PUBLIC_URL}/image10.png`,
+    `${process.env.PUBLIC_URL}/image11.png`,
+    `${process.env.PUBLIC_URL}/image12.png`,
+    `${process.env.PUBLIC_URL}/image13.png`
   ];
 
   const sliderImages = [
-    `${process.env.PUBLIC_URL}/banner1.jpg`,
-    `${process.env.PUBLIC_URL}/banner2.jpg`,
-    `${process.env.PUBLIC_URL}/banner3.jpg`
+    `${process.env.PUBLIC_URL}/slider1.jpeg`,
+    `${process.env.PUBLIC_URL}/slider2.jpg`,
+    `${process.env.PUBLIC_URL}/slider3.jpg`
   ];
 
   const ads = [

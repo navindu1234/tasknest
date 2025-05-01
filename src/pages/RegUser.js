@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { auth, db, storage } from "../components/firebase";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { collection, doc, setDoc, getDocs, query, where } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { FiUser, FiMail, FiPhone, FiLock, FiCalendar, FiHome, FiCamera } from "react-icons/fi";
+import { FiCamera } from "react-icons/fi";
 import { FaSpinner } from "react-icons/fa";
 
 const RegUser = () => {
@@ -22,6 +22,7 @@ const RegUser = () => {
   });
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
+  const [profileImageFile, setProfileImageFile] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -35,18 +36,69 @@ const RegUser = () => {
     }));
   };
 
-  const handleImagePick = (e) => {
+  const compressImage = async (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const maxWidth = 800;
+          const maxHeight = 800;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > maxWidth) {
+              height *= maxWidth / width;
+              width = maxWidth;
+            }
+          } else {
+            if (height > maxHeight) {
+              width *= maxHeight / height;
+              height = maxHeight;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          canvas.toBlob((blob) => {
+            resolve(new File([blob], file.name, {
+              type: 'image/jpeg',
+              lastModified: Date.now()
+            }));
+          }, 'image/jpeg', 0.7);
+        };
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleImagePick = async (e) => {
     const file = e.target.files[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        setError("Image size should be less than 2MB");
-        return;
-      }
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Image size should be less than 5MB");
+      return;
+    }
+
+    try {
+      const compressedFile = await compressImage(file);
+      setProfileImageFile(compressedFile);
+      
       const reader = new FileReader();
       reader.onload = (event) => {
         setProfileImage(event.target.result);
       };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(compressedFile);
+    } catch (err) {
+      console.error("Image processing error:", err);
+      setError("Failed to process image. Please try another one.");
     }
   };
 
@@ -56,7 +108,6 @@ const RegUser = () => {
     setSuccess("");
     setIsLoading(true);
 
-    // Validation
     if (!agreedToTerms) {
       setError("You must agree to the Terms & Conditions");
       setIsLoading(false);
@@ -105,20 +156,34 @@ const RegUser = () => {
       );
       const user = userCredential.user;
 
+      // Send email verification
+      await sendEmailVerification(user);
+
       // Upload image if exists
       let imageUrl = "";
-      if (profileImage) {
-        const fileInput = document.querySelector('input[type="file"]');
-        const file = fileInput.files[0];
-        if (file) {
-          const storageRef = ref(storage, `profileImages/${user.uid}`);
-          const uploadTask = await uploadBytes(storageRef, file);
+      if (profileImageFile) {
+        try {
+          // Updated storage path to users/profileImages/
+          const storageRef = ref(storage, `users/profileImages/${user.uid}`);
+          const metadata = {
+            contentType: profileImageFile.type,
+            customMetadata: {
+              'uploadedBy': user.uid,
+              'uploadDate': new Date().toISOString()
+            }
+          };
+          
+          const uploadTask = await uploadBytes(storageRef, profileImageFile, metadata);
           imageUrl = await getDownloadURL(uploadTask.ref);
+        } catch (uploadError) {
+          console.error("Image upload failed:", uploadError);
+          setError("Profile image upload failed, but account was created. You can update your profile picture later.");
         }
       }
 
       // Save user data
       await setDoc(doc(usersRef, user.uid), {
+        uid: user.uid,
         username: formData.username,
         email: formData.email,
         fullName: formData.fullName,
@@ -127,15 +192,26 @@ const RegUser = () => {
         address: formData.address,
         gender: formData.gender,
         userType: formData.userType,
-        profileImage: imageUrl,
+        profileImage: imageUrl || "",
         createdAt: new Date().toISOString(),
+        emailVerified: false,
       });
 
-      setSuccess("Registration successful! Redirecting to login...");
-      setTimeout(() => navigate("/login"), 2000);
+      setSuccess("Registration successful! Please check your email to verify your account.");
+      setTimeout(() => navigate("/login"), 4000);
     } catch (error) {
       console.error("Registration error:", error);
-      setError(error.message || "Registration failed. Please try again.");
+      let errorMessage = "Registration failed. Please try again.";
+      
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = "This email is already registered.";
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = "Password should be at least 6 characters.";
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = "Please enter a valid email address.";
+      }
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -207,7 +283,10 @@ const RegUser = () => {
                 {profileImage && (
                   <button 
                     type="button"
-                    onClick={() => setProfileImage(null)}
+                    onClick={() => {
+                      setProfileImage(null);
+                      setProfileImageFile(null);
+                    }}
                     className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-red-500 text-white text-xs px-2 py-1 rounded-full hover:bg-red-600 transition-colors"
                   >
                     Remove
@@ -245,85 +324,70 @@ const RegUser = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="block text-sm font-medium text-gray-700">Full Name</label>
-                  <div className="relative">
-                    <FiUser className="absolute left-3 top-3 text-gray-400" />
-                    <input
-                      type="text"
-                      name="fullName"
-                      placeholder="John Doe"
-                      value={formData.fullName}
-                      onChange={handleChange}
-                      required
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                    />
-                  </div>
+                  <input
+                    type="text"
+                    name="fullName"
+                    placeholder="John Doe"
+                    value={formData.fullName}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                  />
                 </div>
 
                 <div className="space-y-1">
                   <label className="block text-sm font-medium text-gray-700">Username</label>
-                  <div className="relative">
-                    <FiUser className="absolute left-3 top-3 text-gray-400" />
-                    <input
-                      type="text"
-                      name="username"
-                      placeholder="johndoe"
-                      value={formData.username}
-                      onChange={handleChange}
-                      required
-                      minLength="3"
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                    />
-                  </div>
+                  <input
+                    type="text"
+                    name="username"
+                    placeholder="johndoe"
+                    value={formData.username}
+                    onChange={handleChange}
+                    required
+                    minLength="3"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                  />
                 </div>
 
                 <div className="space-y-1">
                   <label className="block text-sm font-medium text-gray-700">Email</label>
-                  <div className="relative">
-                    <FiMail className="absolute left-3 top-3 text-gray-400" />
-                    <input
-                      type="email"
-                      name="email"
-                      placeholder="john@example.com"
-                      value={formData.email}
-                      onChange={handleChange}
-                      required
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                    />
-                  </div>
+                  <input
+                    type="email"
+                    name="email"
+                    placeholder="john@example.com"
+                    value={formData.email}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                  />
                 </div>
 
                 <div className="space-y-1">
                   <label className="block text-sm font-medium text-gray-700">Phone</label>
-                  <div className="relative">
-                    <FiPhone className="absolute left-3 top-3 text-gray-400" />
-                    <input
-                      type="tel"
-                      name="phone"
-                      placeholder="1234567890"
-                      value={formData.phone}
-                      onChange={handleChange}
-                      required
-                      pattern="[0-9]{10,15}"
-                      title="Please enter a valid phone number"
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                    />
-                  </div>
+                  <input
+                    type="tel"
+                    name="phone"
+                    placeholder="1234567890"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    required
+                    pattern="[0-9]{10,15}"
+                    title="Please enter a valid phone number"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                  />
                 </div>
 
                 <div className="space-y-1">
                   <label className="block text-sm font-medium text-gray-700">Date of Birth</label>
-                  <div className="relative">
-                    <FiCalendar className="absolute left-3 top-3 text-gray-400" />
-                    <input
-                      type="date"
-                      name="dob"
-                      value={formData.dob}
-                      onChange={handleChange}
-                      required
-                      max={new Date().toISOString().split('T')[0]}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                    />
-                  </div>
+                  <input
+                    type="date"
+                    name="dob"
+                    value={formData.dob}
+                    onChange={handleChange}
+                    required
+                    max={new Date().toISOString().split('T')[0]}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                  />
                 </div>
 
                 <div className="space-y-1">
@@ -355,36 +419,30 @@ const RegUser = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="block text-sm font-medium text-gray-700">Password</label>
-                  <div className="relative">
-                    <FiLock className="absolute left-3 top-3 text-gray-400" />
-                    <input
-                      type="password"
-                      name="password"
-                      placeholder="••••••"
-                      value={formData.password}
-                      onChange={handleChange}
-                      required
-                      minLength="6"
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                    />
-                  </div>
+                  <input
+                    type="password"
+                    name="password"
+                    placeholder="••••••"
+                    value={formData.password}
+                    onChange={handleChange}
+                    required
+                    minLength="6"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                  />
                   <p className="text-xs text-gray-500 mt-1">Minimum 6 characters</p>
                 </div>
 
                 <div className="space-y-1">
                   <label className="block text-sm font-medium text-gray-700">Confirm Password</label>
-                  <div className="relative">
-                    <FiLock className="absolute left-3 top-3 text-gray-400" />
-                    <input
-                      type="password"
-                      name="confirmPassword"
-                      placeholder="••••••"
-                      value={formData.confirmPassword}
-                      onChange={handleChange}
-                      required
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                    />
-                  </div>
+                  <input
+                    type="password"
+                    name="confirmPassword"
+                    placeholder="••••••"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                  />
                 </div>
               </div>
             </div>
@@ -399,18 +457,15 @@ const RegUser = () => {
               <div className="space-y-4">
                 <div className="space-y-1">
                   <label className="block text-sm font-medium text-gray-700">Address</label>
-                  <div className="relative">
-                    <FiHome className="absolute left-3 top-3 text-gray-400" />
-                    <input
-                      type="text"
-                      name="address"
-                      placeholder="123 Main St, City"
-                      value={formData.address}
-                      onChange={handleChange}
-                      required
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                    />
-                  </div>
+                  <input
+                    type="text"
+                    name="address"
+                    placeholder="123 Main St, City"
+                    value={formData.address}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                  />
                 </div>
 
                 <div className="space-y-1">
