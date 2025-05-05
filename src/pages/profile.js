@@ -172,7 +172,7 @@ function Profile() {
             <div 
               key={index} 
               className={`bg-gradient-to-r ${stat.color} rounded-2xl p-5 shadow-lg text-white hover:shadow-xl transition cursor-pointer`}
-              onClick={() => index === 0 ? navigate("/orders") : index === 1 ? navigate("/reviews") : null}
+              onClick={() => index === 0 ? navigate("/home") : index === 1 ? navigate("/home") : null}
             >
               <div className="flex justify-between items-center">
                 <div>
@@ -233,7 +233,7 @@ function Profile() {
               <p className="text-gray-600 mb-4">You haven't placed any orders yet</p>
               <button
                 className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg transition flex items-center mx-auto"
-                onClick={() => navigate("/search/services")}
+                onClick={() => navigate("/home")}
               >
                 <FaShoppingBag className="mr-2" /> Explore Services
               </button>

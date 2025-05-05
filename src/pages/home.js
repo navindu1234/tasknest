@@ -62,67 +62,65 @@ function Home() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-green-50 to-white text-green-900 relative overflow-hidden">
-      {/* Background Design - Enhanced Green Theme */}
-      <div className="absolute inset-0 -z-10 opacity-10">
-        <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 to-green-800/20"></div>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-[20vw] font-bold tracking-widest opacity-5 select-none text-green-800">
-            TASKNEST
-          </div>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 text-green-900 relative overflow-hidden">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 -z-10 opacity-5">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiPjxkZWZzPjxwYXR0ZXJuIGlkPSJwYXR0ZXJuIiB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHBhdHRlcm5Vbml0cz0idXNlclNwYWNlT25Vc2UiIHBhdHRlcm5UcmFuc2Zvcm09InJvdGF0ZSg0NSkiPjxyZWN0IHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgZmlsbD0icmdiYSgwLDAsMCwwLjAyKSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNwYXR0ZXJuKSIvPjwvc3ZnPg==')]"></div>
       </div>
 
       <Navbar />
 
-      <div className="max-w-6xl mx-auto pt-6 pb-16 px-4">
-        {/* Hero Section with Green Accents */}
-        <div className="text-center mb-12 mt-6">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 text-green-800">
-            Find Trusted <span className="text-green-600">Service Providers</span>
+      <div className="max-w-7xl mx-auto pt-6 pb-16 px-4 sm:px-6 lg:px-8">
+        {/* Hero Section */}
+        <div className="text-center mb-12 mt-10">
+          <div className="inline-block bg-green-100 px-4 py-2 rounded-full mb-6 shadow-sm">
+            <span className="text-green-700 font-medium">Trusted by 10,000+ customers</span>
+          </div>
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 text-green-900 leading-tight">
+            Find <span className="text-green-600">Trusted</span> Home Services
           </h1>
-          <p className="text-xl md:text-2xl text-green-700 max-w-3xl mx-auto">
-            Book home services at your convenience with verified professionals
+          <p className="text-lg md:text-xl text-green-700 max-w-3xl mx-auto mb-8">
+            Book professional services with confidence. All our providers are verified and background-checked.
           </p>
-        </div>
-
-        {/* Search Bar - Green Theme */}
-        <div className="flex justify-center items-center mb-8 max-w-4xl mx-auto">
-          <div className="relative w-full">
-            <input
-              type="text"
-              placeholder="What service are you looking for?"
-              className="p-4 pr-12 w-full border-none rounded-full shadow-lg text-green-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <button className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-green-600 text-white p-3 rounded-full hover:bg-green-700 transition shadow-md">
-              <FiSearch size={20} />
-            </button>
+          
+          {/* Search Bar */}
+          <div className="flex justify-center items-center mb-8 max-w-2xl mx-auto relative">
+            <div className="relative w-full">
+              <input
+                type="text"
+                placeholder="What service are you looking for?"
+                className="p-4 pr-16 w-full border-none rounded-full shadow-lg text-green-900 focus:outline-none focus:ring-4 focus:ring-green-300 focus:ring-opacity-50 transition-all duration-200"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <button className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-green-600 hover:bg-green-700 text-white p-3 rounded-full transition-all shadow-lg hover:shadow-xl">
+                <FiSearch size={20} />
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Filtered Results - Green Card Style */}
+        {/* Filtered Results */}
         {searchQuery && (
-          <div className="bg-white backdrop-blur-sm text-green-900 p-6 rounded-2xl shadow-lg mb-6 max-w-2xl mx-auto border border-green-100">
-            <h3 className="font-semibold text-lg mb-4 flex items-center text-green-700">
+          <div className="bg-white bg-opacity-90 backdrop-blur-md text-green-900 p-6 rounded-2xl shadow-xl mb-8 max-w-3xl mx-auto border border-green-200">
+            <h3 className="font-semibold text-xl mb-4 flex items-center text-green-800">
               <FiSearch className="mr-2 text-green-600" /> Search Results
             </h3>
             {filteredCategories.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {filteredCategories.map((category, index) => (
                   <Link
                     key={index}
                     to={`/search/${encodeURIComponent(category)}`}
-                    className="bg-white p-4 rounded-xl border border-green-100 hover:border-green-300 transition hover:shadow-md"
+                    className="bg-white p-4 rounded-xl border border-green-100 hover:border-green-300 transition-all hover:shadow-md hover:scale-[1.02]"
                   >
                     <div className="flex items-center">
                       <img
                         src={categoryImages[index % categoryImages.length]}
                         alt={category}
-                        className="w-12 h-12 object-cover rounded-lg mr-3"
+                        className="w-14 h-14 object-cover rounded-lg mr-4"
                       />
-                      <span className="text-green-700 font-medium">{category}</span>
+                      <span className="text-green-800 font-medium">{category}</span>
                     </div>
                   </Link>
                 ))}
@@ -141,8 +139,8 @@ function Home() {
           </div>
         )}
 
-        {/* Main Carousel with Green Overlay */}
-        <div className="max-w-6xl mx-auto mt-10 rounded-2xl overflow-hidden shadow-2xl border-4 border-green-100">
+        {/* Main Carousel */}
+        <div className="max-w-7xl mx-auto mt-10 rounded-3xl overflow-hidden shadow-2xl border-4 border-green-100">
           <Carousel
             showThumbs={false}
             autoPlay
@@ -157,16 +155,21 @@ function Home() {
                 <img
                   src={image}
                   alt={`promo ${index + 1}`}
-                  className="w-full h-80 md:h-96 object-cover"
+                  className="w-full h-80 md:h-[32rem] object-cover"
                 />
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-green-900/80 to-transparent p-6">
-                  <h2 className="text-2xl md:text-3xl font-bold text-white">
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-green-900/90 to-transparent p-8">
+                  <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
                     {index === 0 && "Quality Services On Demand"}
                     {index === 1 && "Verified Professionals"}
                     {index === 2 && "Satisfaction Guaranteed"}
                   </h2>
-                  <button className="mt-3 bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-full font-semibold transition flex items-center mx-auto shadow-lg hover:shadow-xl">
-                    Book Now <FiChevronRight className="ml-1" />
+                  <p className="text-green-100 mb-6 max-w-xl">
+                    {index === 0 && "Find the perfect professional for any home service need"}
+                    {index === 1 && "All our service providers are background-checked and verified"}
+                    {index === 2 && "We stand behind every service with our satisfaction guarantee"}
+                  </p>
+                  <button className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-full font-semibold transition-all flex items-center mx-auto shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                    Book Now <FiChevronRight className="ml-2" />
                   </button>
                 </div>
               </div>
@@ -174,22 +177,22 @@ function Home() {
           </Carousel>
         </div>
 
-        {/* Advertisement Banners - Green Gradient */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-12">
+        {/* Advertisement Banners */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-14">
           {ads.map((ad, index) => (
             <div 
               key={index}
-              className={`${ad.bg} p-6 rounded-2xl shadow-lg text-white hover:shadow-xl transition transform hover:-translate-y-1`}
+              className={`${ad.bg} p-8 rounded-2xl shadow-lg text-white hover:shadow-xl transition-all transform hover:-translate-y-1`}
             >
               <div className="flex items-start">
-                <div className="bg-white/20 p-3 rounded-full mr-4">
+                <div className="bg-white/20 p-3 rounded-full mr-5">
                   {ad.icon}
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold mb-2">{ad.title}</h3>
-                  <p className="mb-4 opacity-90">{ad.desc}</p>
-                  <button className="bg-white text-green-700 px-5 py-2 rounded-full font-semibold hover:bg-gray-100 transition flex items-center shadow-md">
-                    {ad.cta} <FiChevronRight className="ml-1" />
+                  <h3 className="text-2xl font-bold mb-3">{ad.title}</h3>
+                  <p className="mb-5 opacity-90">{ad.desc}</p>
+                  <button className="bg-white text-green-700 px-6 py-2 rounded-full font-semibold hover:bg-gray-50 transition-all flex items-center shadow-md hover:shadow-lg">
+                    {ad.cta} <FiChevronRight className="ml-2" />
                   </button>
                 </div>
               </div>
@@ -197,8 +200,9 @@ function Home() {
           ))}
         </div>
 
-        {/* Categories Section with Green Accents */}
-        <div className="mb-16">
+        {/* Categories Section */}
+           {/* Categories Section with Green Accents */}
+           <div className="mb-16">
           <h2 className="text-3xl font-bold text-center mb-10 text-green-800">
             Popular <span className="text-green-600">Services</span>
           </h2>
@@ -224,46 +228,49 @@ function Home() {
           </div>
         </div>
 
-        {/* Value Proposition Section - Green Cards */}
-        <div className="bg-white backdrop-blur-sm text-green-900 rounded-2xl p-8 md:p-12 shadow-xl mb-12 border border-green-100">
+        {/* Value Proposition Section */}
+        <div className="bg-white text-green-900 rounded-3xl p-8 md:p-12 shadow-xl mb-16 border border-green-100">
           <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-2xl md:text-3xl font-bold mb-6 text-green-800">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-green-900">
               Why Choose <span className="text-green-600">TaskNest</span>?
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-              <div className="bg-white p-6 rounded-xl border border-green-100 hover:border-green-300 transition hover:shadow-md">
-                <div className="bg-green-100 text-green-600 w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <FaCheck size={20} />
+            <p className="text-lg text-green-700 mb-12 max-w-3xl mx-auto">
+              We connect you with trusted professionals for all your home service needs
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="bg-green-50 p-6 rounded-xl border border-green-100 hover:border-green-300 transition-all hover:shadow-md">
+                <div className="bg-green-600 text-white w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5">
+                  <FaCheck size={24} />
                 </div>
-                <h3 className="font-bold mb-2 text-green-800">Verified Providers</h3>
-                <p className="text-green-700 text-sm">Background checked professionals</p>
+                <h3 className="font-bold mb-3 text-xl text-green-900">Verified Providers</h3>
+                <p className="text-green-700">Background checked professionals with verified credentials</p>
               </div>
-              <div className="bg-white p-6 rounded-xl border border-green-100 hover:border-green-300 transition hover:shadow-md">
-                <div className="bg-green-100 text-green-600 w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <FaDollarSign size={20} />
+              <div className="bg-green-50 p-6 rounded-xl border border-green-100 hover:border-green-300 transition-all hover:shadow-md">
+                <div className="bg-green-600 text-white w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5">
+                  <FaDollarSign size={24} />
                 </div>
-                <h3 className="font-bold mb-2 text-green-800">Fair Pricing</h3>
-                <p className="text-green-700 text-sm">No hidden charges</p>
+                <h3 className="font-bold mb-3 text-xl text-green-900">Fair Pricing</h3>
+                <p className="text-green-700">Transparent pricing with no hidden charges</p>
               </div>
-              <div className="bg-white p-6 rounded-xl border border-green-100 hover:border-green-300 transition hover:shadow-md">
-                <div className="bg-green-100 text-green-600 w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <FaShieldAlt size={20} />
+              <div className="bg-green-50 p-6 rounded-xl border border-green-100 hover:border-green-300 transition-all hover:shadow-md">
+                <div className="bg-green-600 text-white w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5">
+                  <FaShieldAlt size={24} />
                 </div>
-                <h3 className="font-bold mb-2 text-green-800">Quality Guarantee</h3>
-                <p className="text-green-700 text-sm">Satisfaction or your money back</p>
+                <h3 className="font-bold mb-3 text-xl text-green-900">Quality Guarantee</h3>
+                <p className="text-green-700">Satisfaction guaranteed or your money back</p>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Chat Button - Green Theme */}
+      {/* Chat Button */}
       <button
         onClick={() => setChatOpen(true)}
-        className="fixed bottom-6 right-6 bg-green-600 hover:bg-green-700 text-white p-4 rounded-full shadow-xl hover:shadow-2xl transition-all flex items-center space-x-2 z-20 animate-bounce"
+        className="fixed bottom-8 right-8 bg-green-600 hover:bg-green-700 text-white p-5 rounded-full shadow-2xl hover:shadow-3xl transition-all flex items-center space-x-2 z-20 animate-bounce"
       >
-        <FiMessageCircle size={24} />
-        <span className="hidden md:inline font-bold">Need Help?</span>
+        <FiMessageCircle size={28} />
+        <span className="hidden md:inline font-bold text-lg">Need Help?</span>
       </button>
 
       {/* Chatbot */}
