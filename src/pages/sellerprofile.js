@@ -26,7 +26,8 @@ import {
   FaCalendarAlt,
   FaMoneyBillWave,
   FaInfoCircle,
-  FaSignOutAlt
+  FaSignOutAlt,
+  FaSpinner
 } from 'react-icons/fa';
 import { MdPayment, MdDescription } from 'react-icons/md';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -45,6 +46,7 @@ const SellerProfile = () => {
     message: '',
     type: 'success'
   });
+  const [updatingOrderId, setUpdatingOrderId] = useState(null);
 
   useEffect(() => {
     if (!sellerDetails?.id) {
@@ -57,7 +59,7 @@ const SellerProfile = () => {
       try {
         const q = query(
           collection(db, 'orders'),
-          where('sellerId', '==', sellerDetails.id),
+          where('sellerName', '==', sellerDetails.name),
           where('status', '==', orderStatus)
         );
         const querySnapshot = await getDocs(q);
@@ -87,6 +89,7 @@ const SellerProfile = () => {
   };
 
   const updateOrderStatus = async (orderId, status) => {
+    setUpdatingOrderId(orderId);
     try {
       const orderRef = doc(db, 'orders', orderId);
       await updateDoc(orderRef, { 
@@ -116,6 +119,8 @@ const SellerProfile = () => {
       showNotification(`Order marked as ${status}`, 'success');
     } catch (error) {
       showNotification(`Failed to update order: ${error.message}`, 'error');
+    } finally {
+      setUpdatingOrderId(null);
     }
   };
 
@@ -350,18 +355,32 @@ const SellerProfile = () => {
                               e.stopPropagation();
                               updateOrderStatus(order.id, 'accepted');
                             }}
-                            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition shadow-sm"
+                            disabled={updatingOrderId === order.id}
+                            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition shadow-sm disabled:opacity-70"
                           >
-                            <FaCheck /> Accept
+                            {updatingOrderId === order.id ? (
+                              <FaSpinner className="animate-spin" />
+                            ) : (
+                              <>
+                                <FaCheck /> Accept
+                              </>
+                            )}
                           </button>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               updateOrderStatus(order.id, 'rejected');
                             }}
-                            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition shadow-sm"
+                            disabled={updatingOrderId === order.id}
+                            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition shadow-sm disabled:opacity-70"
                           >
-                            <FaTimesCircle /> Reject
+                            {updatingOrderId === order.id ? (
+                              <FaSpinner className="animate-spin" />
+                            ) : (
+                              <>
+                                <FaTimesCircle /> Reject
+                              </>
+                            )}
                           </button>
                         </>
                       )}
@@ -371,9 +390,16 @@ const SellerProfile = () => {
                             e.stopPropagation();
                             updateOrderStatus(order.id, 'completed');
                           }}
-                          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition shadow-sm"
+                          disabled={updatingOrderId === order.id}
+                          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition shadow-sm disabled:opacity-70"
                         >
-                          <FaCheck /> Complete
+                          {updatingOrderId === order.id ? (
+                            <FaSpinner className="animate-spin" />
+                          ) : (
+                            <>
+                              <FaCheck /> Complete
+                            </>
+                          )}
                         </button>
                       )}
                     </div>
@@ -462,20 +488,32 @@ const SellerProfile = () => {
                     <button
                       onClick={() => {
                         updateOrderStatus(selectedOrder.id, 'accepted');
-                        setSelectedOrder(null);
                       }}
-                      className="px-5 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition shadow-sm flex items-center gap-2"
+                      disabled={updatingOrderId === selectedOrder.id}
+                      className="px-5 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition shadow-sm flex items-center gap-2 disabled:opacity-70"
                     >
-                      <FaCheck /> Accept Order
+                      {updatingOrderId === selectedOrder.id ? (
+                        <FaSpinner className="animate-spin" />
+                      ) : (
+                        <>
+                          <FaCheck /> Accept Order
+                        </>
+                      )}
                     </button>
                     <button
                       onClick={() => {
                         updateOrderStatus(selectedOrder.id, 'rejected');
-                        setSelectedOrder(null);
                       }}
-                      className="px-5 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition shadow-sm flex items-center gap-2"
+                      disabled={updatingOrderId === selectedOrder.id}
+                      className="px-5 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition shadow-sm flex items-center gap-2 disabled:opacity-70"
                     >
-                      <FaTimesCircle /> Reject Order
+                      {updatingOrderId === selectedOrder.id ? (
+                        <FaSpinner className="animate-spin" />
+                      ) : (
+                        <>
+                          <FaTimesCircle /> Reject Order
+                        </>
+                      )}
                     </button>
                   </>
                 )}
@@ -483,11 +521,17 @@ const SellerProfile = () => {
                   <button
                     onClick={() => {
                       updateOrderStatus(selectedOrder.id, 'completed');
-                      setSelectedOrder(null);
                     }}
-                    className="px-5 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition shadow-sm flex items-center gap-2"
+                    disabled={updatingOrderId === selectedOrder.id}
+                    className="px-5 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition shadow-sm flex items-center gap-2 disabled:opacity-70"
                   >
-                    <FaCheck /> Mark Completed
+                    {updatingOrderId === selectedOrder.id ? (
+                      <FaSpinner className="animate-spin" />
+                    ) : (
+                      <>
+                        <FaCheck /> Mark Completed
+                      </>
+                    )}
                   </button>
                 )}
               </div>

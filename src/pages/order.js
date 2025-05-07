@@ -10,7 +10,8 @@ import {
   getDocs, 
   updateDoc, 
   doc,
-  getDoc
+  getDoc,
+  serverTimestamp
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useAuth } from "../contexts/AuthContext";
@@ -33,17 +34,15 @@ import {
   Snackbar,
   Alert,
   Paper,
-  Chip,
-  Divider
+  Divider,
+  Chip
 } from "@mui/material";
 import {
   ShoppingBag,
   Phone,
   Description,
   LocationOn,
-  CalendarToday,
-  AccessTime,
-  Comment,
+  Comment as CommentIcon,
   AddAPhoto,
   Close,
   ArrowBack,
@@ -51,14 +50,18 @@ import {
   School,
   Place,
   Schedule,
-  StarBorder
+  StarBorder,
+  CalendarMonth,
+  AccessTime
 } from "@mui/icons-material";
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 
 const Order = () => {
   const { sellerId } = useParams();
+  const { sellerName } = useParams();
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -76,16 +79,17 @@ const Order = () => {
   const [description, setDescription] = useState("");
   const [place, setPlace] = useState("");
   const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedTime, setSelectedTime] = useState(null);
   const [formattedDateTime, setFormattedDateTime] = useState("");
   const [rating, setRating] = useState(0);
   const [reviewText, setReviewText] = useState("");
 
   // Theme colors
-  const primaryColor = "#16a34a";
-  const darkPrimaryColor = "#15803d";
-  const lightPrimaryColor = "#dcfce7";
-  const backgroundColor = "#f0fdf4";
-  const textColor = "#052e16";
+  const primaryColor = "#89AC46";
+  const darkPrimaryColor = "#6E8D38";
+  const lightPrimaryColor = "#E8F5E9";
+  const backgroundColor = "#F5F5F5";
+  const textColor = "#2E7D32";
 
   useEffect(() => {
     const fetchSeller = async () => {
@@ -107,18 +111,11 @@ const Order = () => {
             }
           }
 
-          // Fetch cover photo if exists
-          if (sellerData.coverPhoto) {
-            try {
-              const imageUrl = await getDownloadURL(ref(storage, sellerData.coverPhoto));
-              sellerData.coverPhoto = imageUrl;
-            } catch (error) {
-              console.error("Error fetching cover photo:", error);
-              sellerData.coverPhoto = "https://via.placeholder.com/400";
-            }
-          }
-
           setSeller(sellerData);
+          // Fetch reviews after seller data is loaded
+
+          
+          await fetchReviews(reviews.sellerName);
         } else {
           setSnackbar({
             open: true,
@@ -145,23 +142,23 @@ const Order = () => {
     }
 
     fetchSeller();
-    fetchReviews();
   }, [currentUser, sellerId, navigate]);
 
-  const fetchReviews = async () => {
-    if (!sellerId) return;
+  const fetchReviews = async (sellerName) => {
+    if (!sellerName) return;
     
     try {
       const q = query(
-        collection(db, "reviews"),
-        where("sellerId", "==", sellerId),
-        orderBy("timestamp", "desc"),
+        collection(db, 'reviews'),
+              
+        // orderBy("timestamp", "desc"),
         limit(5)
       );
       const querySnapshot = await getDocs(q);
       const reviewsData = querySnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
+        // timestamp: doc.data().timestamp // Keep the Firestore timestamp
       }));
       setReviews(reviewsData);
     } catch (error) {
@@ -214,14 +211,28 @@ const Order = () => {
     return urls;
   };
 
-  const handleDateTimeChange = (newValue) => {
-    setSelectedDate(newValue);
-    if (newValue) {
-      setFormattedDateTime(format(newValue, "MMM dd, yyyy - hh:mm a"));
+  const updateDateTimeField = () => {
+    if (selectedDate && selectedTime) {
+      const combinedDateTime = new Date(
+        selectedDate.getFullYear(),
+        selectedDate.getMonth(),
+        selectedDate.getDate(),
+        selectedTime.getHours(),
+        selectedTime.getMinutes()
+      );
+      setFormattedDateTime(format(combinedDateTime, "MMM dd, yyyy - hh:mm a"));
+    } else if (selectedDate) {
+      setFormattedDateTime(format(selectedDate, "MMM dd, yyyy"));
+    } else if (selectedTime) {
+      setFormattedDateTime(format(selectedTime, "hh:mm a"));
     } else {
       setFormattedDateTime("");
     }
   };
+
+  useEffect(() => {
+    updateDateTimeField();
+  }, [selectedDate, selectedTime]);
 
   const submitOrder = async () => {
     if (!seller) return;
@@ -237,34 +248,35 @@ const Order = () => {
 
     setLoading(true);
     try {
-      const orderImageUrls = await uploadImages(orderImages, "orders");
+      const orderImageUrls = orderImages.length > 0 ? await uploadImages(orderImages, "orders") : [];
 
       const orderDoc = await addDoc(collection(db, "orders"), {
+        orderId: uuidv4(),
         orderName,
         telephone,
         sellerId: seller.id,
         sellerName: seller.name,
-        sellerService: seller.service,
+        sellerService: seller.serviceDescription || seller.service,
         description,
         place,
         time: formattedDateTime,
         status: "pending",
-        timestamp: new Date(),
+        timestamp: serverTimestamp(),
         userId: currentUser.uid,
         username: currentUser.displayName || "Unknown User",
         userPhone: currentUser.phoneNumber || "",
         images: orderImageUrls,
-        lastUpdated: new Date(),
+        lastUpdated: serverTimestamp(),
         notificationSeen: false,
       });
 
       await addDoc(collection(db, "notifications"), {
-        recipientId: seller.uid,
+        recipientId: seller.uid || seller.id,
         senderId: currentUser.uid,
         type: "new_order",
         orderId: orderDoc.id,
-        message: `New order request for ${seller.service}`,
-        timestamp: new Date(),
+        message: `New order request for ${seller.serviceDescription || seller.service}`,
+        timestamp: serverTimestamp(),
         read: false,
       });
 
@@ -273,12 +285,12 @@ const Order = () => {
         message: "Order submitted successfully",
         severity: "success",
       });
-      navigate("/my-orders");
+      navigate(`/my-orders/${currentUser.uid}`);
     } catch (error) {
       console.error("Error submitting order:", error);
       setSnackbar({
         open: true,
-        message: "Error submitting order",
+        message: "Error submitting order: " + error.message,
         severity: "error",
       });
     } finally {
@@ -309,7 +321,7 @@ const Order = () => {
 
     setReviewLoading(true);
     try {
-      const imageUrls = await uploadImages(reviewImages, "reviews");
+      const imageUrls = reviewImages.length > 0 ? await uploadImages(reviewImages, "reviews") : [];
 
       await addDoc(collection(db, "reviews"), {
         sellerId: seller.id,
@@ -319,8 +331,8 @@ const Order = () => {
         rating,
         review: reviewText,
         images: imageUrls,
-        timestamp: new Date(),
-        service: seller.service,
+        timestamp: serverTimestamp(),
+        service: seller.serviceDescription || seller.service,
       });
 
       await updateSellerRating();
@@ -333,12 +345,12 @@ const Order = () => {
       setReviewText("");
       setRating(0);
       setReviewImages([]);
-      fetchReviews();
+      fetchReviews(seller.name);
     } catch (error) {
       console.error("Error submitting review:", error);
       setSnackbar({
         open: true,
-        message: "Error submitting review",
+        message: "Error submitting review: " + error.message,
         severity: "error",
       });
     } finally {
@@ -413,6 +425,8 @@ const Order = () => {
   };
 
   const renderReviewCard = (review) => {
+    const reviewDate = review.timestamp?.toDate ? review.timestamp.toDate() : new Date();
+    
     return (
       <Paper 
         key={review.id} 
@@ -429,7 +443,7 @@ const Order = () => {
             {review.username || "Anonymous"}
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            {format(review.timestamp?.toDate(), "MMM dd, yyyy")}
+            {format(reviewDate, "MMM dd, yyyy")}
           </Typography>
         </Box>
         <Rating
@@ -493,9 +507,9 @@ const Order = () => {
         justifyContent: 'center', 
         alignItems: 'center', 
         minHeight: '100vh',
-        background: `linear-gradient(to bottom, ${primaryColor}, ${darkPrimaryColor})`
+        backgroundColor: backgroundColor
       }}>
-        <CircularProgress sx={{ color: 'white' }} />
+        <CircularProgress sx={{ color: primaryColor }} />
       </Box>
     );
   }
@@ -506,45 +520,43 @@ const Order = () => {
 
   return (
     <Box sx={{ 
-      background: `linear-gradient(to bottom, ${primaryColor}, ${darkPrimaryColor})`, 
+      backgroundColor: backgroundColor,
       minHeight: "100vh",
       pb: 4
     }}>
       <Container maxWidth="md">
-        {/* Back Button */}
-        <Button
-          startIcon={<ArrowBack />}
-          sx={{ 
-            mt: 3, 
-            color: 'white',
-            '&:hover': {
-              backgroundColor: 'rgba(255,255,255,0.1)'
-            }
-          }}
-          onClick={() => navigate(-1)}
-        >
-          Back
-        </Button>
-
         {/* Header */}
-        <Typography 
-          variant="h4" 
-          fontWeight="bold" 
-          sx={{ 
-            mt: 2, 
-            mb: 4, 
-            color: 'white',
-            textAlign: 'center',
-            textShadow: '0 2px 4px rgba(0,0,0,0.2)'
-          }}
-        >
-          Order from {seller.name}
-        </Typography>
+        <Box sx={{
+          background: `linear-gradient(to right, ${primaryColor}, ${darkPrimaryColor})`,
+          color: 'white',
+          py: 2,
+          px: 3,
+          borderRadius: 2,
+          mb: 3,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <IconButton 
+              color="inherit" 
+              onClick={() => navigate(-1)}
+              sx={{ mr: 2 }}
+            >
+              <ArrowBack />
+            </IconButton>
+            <Typography 
+              variant="h5" 
+              fontWeight="bold"
+              sx={{ flexGrow: 1 }}
+            >
+              Order from {seller.name}
+            </Typography>
+          </Box>
+        </Box>
 
         {/* Seller Profile Card */}
         <Card sx={{ 
           mb: 3, 
-          borderRadius: 3, 
+          borderRadius: 2, 
           backgroundColor: 'white',
           boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
         }}>
@@ -558,8 +570,8 @@ const Order = () => {
               <Avatar 
                 src={seller.profileImage} 
                 sx={{ 
-                  width: 120, 
-                  height: 120,
+                  width: 100, 
+                  height: 100,
                   border: `3px solid ${primaryColor}`
                 }} 
               />
@@ -589,9 +601,9 @@ const Order = () => {
                     ({seller.reviewsCount || 0} reviews)
                   </Typography>
                 </Box>
-                {seller.service && (
+                {seller.serviceDescription && (
                   <Chip
-                    label={seller.service}
+                    label={seller.serviceDescription}
                     sx={{ 
                       mt: 1,
                       backgroundColor: lightPrimaryColor,
@@ -612,7 +624,7 @@ const Order = () => {
                   <Box sx={{ display: 'flex', alignItems: 'center' }}>
                     <Place color="action" sx={{ mr: 1, color: primaryColor }} />
                     <Typography variant="body2" color={textColor}>
-                      <strong>Location:</strong> {seller.city}
+                      <strong>City:</strong> {seller.city}
                     </Typography>
                   </Box>
                 </Grid>
@@ -623,6 +635,26 @@ const Order = () => {
                     <LocationOn color="action" sx={{ mr: 1, color: primaryColor }} />
                     <Typography variant="body2" color={textColor}>
                       <strong>Address:</strong> {seller.address}
+                    </Typography>
+                  </Box>
+                </Grid>
+              )}
+              {seller.preferredLocation && (
+                <Grid item xs={12} sm={6}>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Place color="action" sx={{ mr: 1, color: primaryColor }} />
+                    <Typography variant="body2" color={textColor}>
+                      <strong>Preferred Location:</strong> {seller.preferredLocation}
+                    </Typography>
+                  </Box>
+                </Grid>
+              )}
+              {seller.workType && (
+                <Grid item xs={12} sm={6}>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Work color="action" sx={{ mr: 1, color: primaryColor }} />
+                    <Typography variant="body2" color={textColor}>
+                      <strong>Work Type:</strong> {seller.workType}
                     </Typography>
                   </Box>
                 </Grid>
@@ -647,7 +679,17 @@ const Order = () => {
                   </Box>
                 </Grid>
               )}
-              {seller.hasCertifications && seller.certificationImage && (
+              {seller.age && (
+                <Grid item xs={12} sm={6}>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Work color="action" sx={{ mr: 1, color: primaryColor }} />
+                    <Typography variant="body2" color={textColor}>
+                      <strong>Age:</strong> {seller.age}
+                    </Typography>
+                  </Box>
+                </Grid>
+              )}
+              {seller.hasCertifications === 'Yes' && seller.certificationImage && (
                 <Grid item xs={12}>
                   <Box sx={{ mt: 2 }}>
                     <Typography variant="body2" fontWeight="500" color={textColor} gutterBottom>
@@ -676,7 +718,7 @@ const Order = () => {
         {/* Order Form */}
         <Card sx={{ 
           mb: 3, 
-          borderRadius: 3, 
+          borderRadius: 2, 
           backgroundColor: 'white',
           boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
         }}>
@@ -759,20 +801,60 @@ const Order = () => {
                   }} />
                   Select Date & Time
                 </Typography>
-                <LocalizationProvider dateAdapter={AdapterDateFns}>
-                  <DateTimePicker
-                    label="Date and Time"
-                    value={selectedDate}
-                    onChange={handleDateTimeChange}
-                    renderInput={(params) => (
-                      <TextField 
-                        {...params} 
-                        fullWidth 
-                        sx={{ borderRadius: 2 }}
+                <Grid container spacing={2}>
+                  <Grid item xs={12} md={6}>
+                    <LocalizationProvider dateAdapter={AdapterDateFns}>
+                      <DatePicker
+                        label="Select Date"
+                        value={selectedDate}
+                        onChange={(newValue) => setSelectedDate(newValue)}
+                        minDate={new Date()}
+                        renderInput={(params) => (
+                          <TextField 
+                            {...params} 
+                            fullWidth 
+                            sx={{ borderRadius: 2 }}
+                            InputProps={{
+                              ...params.InputProps,
+                              startAdornment: <CalendarMonth color="action" sx={{ mr: 1, color: primaryColor }} />
+                            }}
+                          />
+                        )}
                       />
-                    )}
-                  />
-                </LocalizationProvider>
+                    </LocalizationProvider>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <LocalizationProvider dateAdapter={AdapterDateFns}>
+                      <TimePicker
+                        label="Select Time"
+                        value={selectedTime}
+                        onChange={(newValue) => setSelectedTime(newValue)}
+                        renderInput={(params) => (
+                          <TextField 
+                            {...params} 
+                            fullWidth 
+                            sx={{ borderRadius: 2 }}
+                            InputProps={{
+                              ...params.InputProps,
+                              startAdornment: <AccessTime color="action" sx={{ mr: 1, color: primaryColor }} />
+                            }}
+                          />
+                        )}
+                      />
+                    </LocalizationProvider>
+                  </Grid>
+                </Grid>
+                <TextField
+                  fullWidth
+                  margin="normal"
+                  value={formattedDateTime}
+                  InputProps={{
+                    readOnly: true,
+                    startAdornment: <Schedule color="action" sx={{ mr: 1, color: primaryColor }} />,
+                    sx: { borderRadius: 2 }
+                  }}
+                  placeholder="Selected date and time will appear here"
+                />
               </Box>
 
               <Box sx={{ mt: 3 }}>
@@ -829,12 +911,12 @@ const Order = () => {
                   },
                 }}
                 onClick={submitOrder}
-                disabled={loading}
+                disabled={loading || !orderName || !telephone || !description || !place || !formattedDateTime}
               >
                 {loading ? (
                   <CircularProgress size={24} color="inherit" />
                 ) : (
-                  "Submit Order Request"
+                  "Submit Order"
                 )}
               </Button>
             </Box>
@@ -844,7 +926,7 @@ const Order = () => {
         {/* Review Form */}
         <Card sx={{ 
           mb: 3, 
-          borderRadius: 3, 
+          borderRadius: 2, 
           backgroundColor: 'white',
           boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
         }}>
@@ -882,7 +964,7 @@ const Order = () => {
                 value={reviewText}
                 onChange={(e) => setReviewText(e.target.value)}
                 InputProps={{ 
-                  startAdornment: <Comment color="action" sx={{ mr: 1, color: primaryColor }} />,
+                  startAdornment: <CommentIcon color="action" sx={{ mr: 1, color: primaryColor }} />,
                   sx: { borderRadius: 2 }
                 }}
                 required
@@ -947,7 +1029,7 @@ const Order = () => {
                 {reviewLoading ? (
                   <CircularProgress size={24} color="inherit" />
                 ) : (
-                  "Submit Your Review"
+                  "Submit Review"
                 )}
               </Button>
             </Box>
@@ -956,7 +1038,7 @@ const Order = () => {
 
         {/* Reviews Section */}
         <Card sx={{ 
-          borderRadius: 3, 
+          borderRadius: 2, 
           backgroundColor: 'white',
           boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
         }}>
@@ -968,7 +1050,7 @@ const Order = () => {
               mb: 2
             }}>
               <Typography variant="h5" fontWeight="bold" color={textColor}>
-                <Comment sx={{ 
+                <CommentIcon sx={{ 
                   color: primaryColor, 
                   verticalAlign: 'middle', 
                   mr: 1 
@@ -976,7 +1058,7 @@ const Order = () => {
                 Customer Reviews
               </Typography>
               <Chip
-                label={`${seller.reviewsCount || 0} reviews`}
+                label={`Latest ${reviews.length} reviews`}
                 size="small"
                 sx={{ 
                   backgroundColor: lightPrimaryColor,

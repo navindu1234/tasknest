@@ -12,11 +12,11 @@ const categories = [
   'Gardening Services',
   'Pest Control',
   'Moving and Packing Services',
-  'Laundry and Ironing Services',
-  'House Painting Services',
+  'Laundry Services',
+  'House Painting',
   'Car Repairs and Maintenance',
   'Cooking Services',
-  'Home Renovation Services',
+  'Home Renovation',
 ];
 
 const experienceLevels = [
