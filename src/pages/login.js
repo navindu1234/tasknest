@@ -6,7 +6,6 @@ import { collection, query, where, getDocs, limit } from "firebase/firestore";
 import { FaSpinner } from "react-icons/fa";
 import { motion } from "framer-motion";
 
-// Category images for animated background
 const categoryImages = [
   `${process.env.PUBLIC_URL}/image1.png`,
   `${process.env.PUBLIC_URL}/image2.png`,
@@ -30,6 +29,13 @@ const Login = () => {
   const loginUser = useCallback(async (e) => {
     e.preventDefault();
     setError("");
+
+    // Check for admin credentials first
+    if (username.trim() === "admin12" && password.trim() === "admin12") {
+      localStorage.setItem("admin", "true");
+      navigate("/admin");
+      return;
+    }
 
     if (!username.trim() || !password.trim()) {
       setError("Please fill in all fields");
@@ -102,12 +108,10 @@ const Login = () => {
 
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-green-500 to-green-700 overflow-hidden">
-      {/* Background TASKNEST Text */}
       <h1 className="absolute text-[200px] font-extrabold text-green-300 opacity-20 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 select-none">
         TASKNEST
       </h1>
 
-      {/* Animated Image Grid */}
       <div className="absolute inset-0 grid grid-cols-5 grid-rows-2 gap-4 p-10 opacity-40">
         {categoryImages.map((src, index) => (
           <motion.div
@@ -126,7 +130,6 @@ const Login = () => {
         ))}
       </div>
 
-      {/* Login Form */}
       <div className="relative z-10 bg-white bg-opacity-95 p-8 rounded-xl shadow-lg w-full max-w-md border-4 border-green-400">
         <div className="bg-green-600 p-6 text-white text-center rounded-t-xl">
           <h2 className="text-3xl font-bold">Welcome Back</h2>

@@ -10,6 +10,8 @@ import SellerLogin from "./pages/sellerlogin";
 import SellerProfile from "./pages/sellerprofile";
 import SellerReg from "./pages/sellerreg";
 import Order from "./pages/order";
+import Admin from "./pages/admin";
+
 
 // Private Route Component for Authentication
 function PrivateRoute({ children, sellerOnly = false }) {
@@ -43,7 +45,7 @@ function App() {
           <Route path="/sellerprofile" element={<SellerProfile />} />
           <Route path="/sellerreg" element={<SellerReg />} />
           <Route path="/search/:category" element={<Search />} />
-
+          <Route path="/admin" element={<Admin />} />
           {/* Private Routes - Regular Users */}
           <Route path="/home" element={
             <PrivateRoute>
