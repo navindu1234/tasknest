@@ -200,7 +200,8 @@ const Admin = () => {
                   <>
                     <td className="py-3 px-4">{item.id.substring(0, 6)}...</td>
                     <td className="py-3 px-4">{item.title}</td>
-                    <td className="py-3 px-4">{item.sellerName || "N/A"}</td>
+                    <td className="py-3 px-4">{item.name || "N/A"}</td>
+                    <td className="py-3 px-4">{item.city || "N/A"}</td>
                     <td className="py-3 px-4 capitalize">{item.category || "N/A"}</td>
                     <td className="py-3 px-4">${item.price || "0"}</td>
                   </>

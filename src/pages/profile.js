@@ -15,9 +15,15 @@ import {
   FaPhone,
   FaCalendarAlt,
   FaUserAlt,
-  FaEnvelope
+  FaEnvelope,
+  FaRobot,
+  FaTimes,
+  FaChevronRight,
+  FaChevronLeft
 } from "react-icons/fa";
 import { FiChevronRight } from "react-icons/fi";
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 function Profile() {
   const navigate = useNavigate();
@@ -34,6 +40,16 @@ function Profile() {
     joinDate: "2023"
   });
   const [loading, setLoading] = useState(true);
+  const [showAIAssistant, setShowAIAssistant] = useState(false);
+  const [aiMessage, setAiMessage] = useState("");
+  const [showBanner, setShowBanner] = useState(true);
+  const [activeServiceProviders, setActiveServiceProviders] = useState([
+    { id: 1, name: "Home Cleaning", count: 243 },
+    { id: 2, name: "Gardening", count: 189 },
+    { id: 3, name: "IT Support", count: 156 },
+    { id: 4, name: "Tutoring", count: 132 },
+    { id: 5, name: "Personal Training", count: 98 }
+  ]);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -55,25 +71,83 @@ function Profile() {
               orderHistory: userData.orderHistory || [],
               joinDate: userData.joinDate || "2023"
             });
+            
+            // Show welcome toast
+            toast.success(`Welcome back, ${userData.username || 'User'}!`, {
+              position: "top-right",
+              autoClose: 3000,
+              hideProgressBar: false,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true,
+              progress: undefined,
+            });
           }
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
+        toast.error("Failed to load profile data. Please try again.", {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+        });
       } finally {
         setLoading(false);
       }
     };
 
     fetchUserData();
+    
+    // Rotate service providers every 5 seconds
+    const interval = setInterval(() => {
+      setActiveServiceProviders(prev => {
+        const first = prev[0];
+        return [...prev.slice(1), first];
+      });
+    }, 5000);
+    
+    return () => clearInterval(interval);
   }, []);
 
   const handleLogout = async () => {
     try {
       await signOut(auth);
+      toast.info("You have been logged out successfully", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+      });
       navigate("/login");
     } catch (error) {
       console.error("Error signing out:", error);
+      toast.error("Failed to logout. Please try again.", {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+      });
     }
+  };
+
+  const handleAIAssistant = () => {
+    setShowAIAssistant(true);
+    setAiMessage("Hello! I'm your TaskNest AI assistant. How can I help you today?");
+  };
+
+  const handleAIClose = () => {
+    setShowAIAssistant(false);
+    setAiMessage("");
   };
 
   if (loading) {
@@ -86,6 +160,8 @@ function Profile() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-500 to-green-800 relative overflow-hidden">
+      <ToastContainer />
+      
       {/* Background Design */}
       <div className="absolute inset-0 -z-10 opacity-10">
         <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 to-green-800/20"></div>
@@ -98,7 +174,80 @@ function Profile() {
 
       <Navbar />
 
-      <div className="max-w-6xl mx-auto pt-6 pb-16 px-4">
+      {/* Service Providers Left Sidebar */}
+      <div className="hidden lg:block fixed left-0 top-1/2 transform -translate-y-1/2 w-48 bg-white/10 backdrop-blur-md rounded-r-xl p-4 shadow-lg z-10">
+        <h3 className="text-white font-bold mb-4 text-center">Active Services</h3>
+        <ul className="space-y-3">
+          {activeServiceProviders.map((service) => (
+            <li key={service.id} className="bg-white/20 p-2 rounded-lg text-white text-sm hover:bg-white/30 transition cursor-pointer">
+              <div className="flex justify-between items-center">
+                <span>{service.name}</span>
+                <span className="bg-green-500 text-xs px-2 py-1 rounded-full">{service.count}+</span>
+              </div>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-4 text-center text-white text-xs">
+          <p>1000+ Service Providers Online</p>
+        </div>
+      </div>
+
+      {/* Service Providers Right Sidebar */}
+      <div className="hidden lg:block fixed right-0 top-1/2 transform -translate-y-1/2 w-48 bg-white/10 backdrop-blur-md rounded-l-xl p-4 shadow-lg z-10">
+        <h3 className="text-white font-bold mb-4 text-center">Trending Now</h3>
+        <div className="space-y-3">
+          <div className="bg-white/20 p-2 rounded-lg text-white text-sm">
+            <div className="flex items-center">
+              <span className="bg-yellow-400 text-yellow-900 px-1 rounded mr-2 text-xs">HOT</span>
+              <span>Smart Home Setup</span>
+            </div>
+            <div className="text-xs mt-1">87 providers</div>
+          </div>
+          <div className="bg-white/20 p-2 rounded-lg text-white text-sm">
+            <div className="flex items-center">
+              <span className="bg-blue-400 text-blue-900 px-1 rounded mr-2 text-xs">NEW</span>
+              <span>EV Charger Install</span>
+            </div>
+            <div className="text-xs mt-1">42 providers</div>
+          </div>
+          <div className="bg-white/20 p-2 rounded-lg text-white text-sm">
+            <div className="flex items-center">
+              <span className="bg-green-400 text-green-900 px-1 rounded mr-2 text-xs">POP</span>
+              <span>Pet Sitting</span>
+            </div>
+            <div className="text-xs mt-1">156 providers</div>
+          </div>
+        </div>
+        <div className="mt-4 text-center text-white text-xs">
+          <p>New services added daily</p>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="max-w-6xl mx-auto pt-6 pb-16 px-4 lg:px-8">
+        {/* Banner */}
+        {showBanner && (
+          <div className="relative bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-xl p-4 mb-8 shadow-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="bg-white/20 p-2 rounded-full mr-3">
+                  <FaRobot className="text-white" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-white">New AI Assistant Available!</h3>
+                  <p className="text-white text-sm">Get personalized recommendations for your needs</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowBanner(false)}
+                className="text-white hover:text-gray-200"
+              >
+                <FaTimes />
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Greeting Message */}
         <div className="mb-8">
           <h1 className="text-3xl md:text-4xl font-bold text-white">
@@ -265,8 +414,61 @@ function Profile() {
           </button>
         </div>
       </div>
+
+      {/* AI Assistant Button */}
+      <button 
+        onClick={handleAIAssistant}
+        className="fixed bottom-6 right-6 bg-gradient-to-r from-purple-600 to-blue-600 text-white p-4 rounded-full shadow-xl hover:shadow-2xl transition-all z-20 flex items-center justify-center"
+      >
+        <FaRobot size={24} />
+      </button>
+
+      {/* AI Assistant Panel */}
+      {showAIAssistant && (
+        <div className="fixed bottom-24 right-6 w-80 bg-white rounded-xl shadow-2xl z-20 overflow-hidden">
+          <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-3 text-white flex justify-between items-center">
+            <h3 className="font-bold flex items-center">
+              <FaRobot className="mr-2" /> TaskNest AI Assistant
+            </h3>
+            <button onClick={handleAIClose} className="text-white hover:text-gray-200">
+              <FaTimes />
+            </button>
+          </div>
+          <div className="p-4 bg-gray-50 h-48 overflow-y-auto">
+            <div className="bg-white p-3 rounded-lg shadow-sm mb-2">
+              <p className="text-sm">{aiMessage}</p>
+            </div>
+          </div>
+          <div className="p-3 border-t border-gray-200">
+            <div className="flex space-x-2">
+              <button 
+                onClick={() => setAiMessage("Based on your history, I recommend checking out our home cleaning services. Would you like me to show you some options?")}
+                className="bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs px-3 py-1 rounded-full transition"
+              >
+                Get Recommendations
+              </button>
+              <button 
+                onClick={() => setAiMessage("You can track your orders in the 'Order History' section. Currently, you have 2 active services.")}
+                className="bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs px-3 py-1 rounded-full transition"
+              >
+                Track Orders
+              </button>
+            </div>
+            <div className="mt-3 relative">
+              <input
+                type="text"
+                placeholder="Ask me anything..."
+                className="w-full p-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button className="absolute right-2 top-2 text-blue-500">
+                <FaChevronRight />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-export default Profile;
+export default Profile
