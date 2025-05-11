@@ -193,12 +193,12 @@ function Profile() {
       </div>
 
       {/* Service Providers Right Sidebar */}
-      <div className="hidden lg:block fixed right-0 top-1/2 transform -translate-y-1/2 w-48 bg-white/10 backdrop-blur-md rounded-l-xl p-4 shadow-lg z-10">
-        <h3 className="text-white font-bold mb-4 text-center">Trending Now</h3>
-        <div className="space-y-3">
+      <div className="hidden lg:block fixed right-0 top-1/2 transform -translate-y-1/2 w-480 bg-white/10 backdrop-blur-md rounded-l-xl p-25 shadow-lg z-10">
+        <h3 className="text-white font-bold mb-4000 text-center">Trending Now</h3>
+        <div className="space-y-30">
           <div className="bg-white/20 p-2 rounded-lg text-white text-sm">
             <div className="flex items-center">
-              <span className="bg-yellow-400 text-yellow-900 px-1 rounded mr-2 text-xs">HOT</span>
+              <span className="bg-yellow-400 text-yellow-900 px-10 rounded mr-2 text-xs">HOT</span>
               <span>Smart Home Setup</span>
             </div>
             <div className="text-xs mt-1">87 providers</div>
@@ -415,7 +415,7 @@ function Profile() {
         </div>
       </div>
 
-      {/* AI Assistant Button */}
+      AI Assistant Button
       <button 
         onClick={handleAIAssistant}
         className="fixed bottom-6 right-6 bg-gradient-to-r from-purple-600 to-blue-600 text-white p-4 rounded-full shadow-xl hover:shadow-2xl transition-all z-20 flex items-center justify-center"
@@ -423,7 +423,7 @@ function Profile() {
         <FaRobot size={24} />
       </button>
 
-      {/* AI Assistant Panel */}
+      AI Assistant Panel
       {showAIAssistant && (
         <div className="fixed bottom-24 right-6 w-80 bg-white rounded-xl shadow-2xl z-20 overflow-hidden">
           <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-3 text-white flex justify-between items-center">
