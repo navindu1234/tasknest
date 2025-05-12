@@ -36,8 +36,8 @@ function Home() {
 
   const sliderImages = [
     `${process.env.PUBLIC_URL}/slider1.jpeg`,
-    `${process.env.PUBLIC_URL}/slider2.jpg`,
-    `${process.env.PUBLIC_URL}/slider3.jpg`
+    `${process.env.PUBLIC_URL}/slider2.jpeg`,
+    `${process.env.PUBLIC_URL}/slider3.jpeg`
   ];
 
   const ads = [
@@ -336,7 +336,7 @@ function Home() {
                 Making home services accessible and reliable for everyone.
               </p>
               <p className="text-green-400 text-lg">
-                © 2015-{new Date().getFullYear()} NestTech Innovations
+                {new Date().getFullYear()} Navindu Gamage. All rights reserved.
               </p>
             </div>
             <div>
@@ -371,7 +371,7 @@ function Home() {
           </div>
           <div className="border-t border-green-800 mt-16 pt-8 text-center">
             <p className="text-green-400 text-lg">
-              NestTech Innovations - Revolutionizing home services since 2015
+              Navindu Gamage - All rights reserved. 2025
             </p>
           </div>
         </div>

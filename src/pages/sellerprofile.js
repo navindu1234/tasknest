@@ -27,7 +27,8 @@ import {
   FaMoneyBillWave,
   FaInfoCircle,
   FaSignOutAlt,
-  FaSpinner
+  FaSpinner,
+  FaImage
 } from 'react-icons/fa';
 import { MdPayment, MdDescription } from 'react-icons/md';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -66,7 +67,8 @@ const SellerProfile = () => {
         const ordersData = querySnapshot.docs.map(doc => ({ 
           id: doc.id, 
           ...doc.data(),
-          timestamp: doc.data().timestamp?.toDate() 
+          timestamp: doc.data().timestamp?.toDate(),
+          lastUpdated: doc.data().lastUpdated?.toDate()
         }));
         // Sort by timestamp (newest first)
         ordersData.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
@@ -94,7 +96,7 @@ const SellerProfile = () => {
       const orderRef = doc(db, 'orders', orderId);
       await updateDoc(orderRef, { 
         status,
-        statusUpdatedAt: serverTimestamp() 
+        lastUpdated: serverTimestamp()
       });
 
       // Get order details for notification
@@ -131,7 +133,9 @@ const SellerProfile = () => {
       (order.orderName?.toLowerCase().includes(query)) ||
       (order.username?.toLowerCase().includes(query)) ||
       (order.description?.toLowerCase().includes(query)) ||
-      (order.id?.toLowerCase().includes(query))
+      (order.id?.toLowerCase().includes(query)) ||
+      (order.userPhone?.toLowerCase().includes(query)) ||
+      (order.place?.toLowerCase().includes(query))
     );
   });
 
@@ -238,7 +242,7 @@ const SellerProfile = () => {
           </div>
           <input
             type="text"
-            placeholder="Search orders by name, user, or ID..."
+            placeholder="Search orders by name, user, phone, or location..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-12 pr-10 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-700 placeholder-gray-400 shadow-sm"
@@ -319,6 +323,15 @@ const SellerProfile = () => {
                         <p className="text-gray-500 text-sm mt-1 flex items-center">
                           <FaUser className="mr-2 opacity-70" /> 
                           {order.username || 'Unknown User'}
+                          {order.userPhone && (
+                            <a 
+                              href={`tel:${order.userPhone}`} 
+                              className="ml-3 text-blue-500 hover:underline flex items-center"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <FaPhone className="mr-1" /> {order.userPhone}
+                            </a>
+                          )}
                         </p>
                       </div>
                       <span className={`text-xs font-medium px-2 py-1 rounded-full ${
@@ -331,6 +344,17 @@ const SellerProfile = () => {
                       </span>
                     </div>
                     
+                    {/* Show first image thumbnail if available */}
+                    {order.images && order.images.length > 0 && (
+                      <div className="mt-3">
+                        <img 
+                          src={order.images[0]} 
+                          alt="Order" 
+                          className="h-24 w-full object-cover rounded-lg border border-gray-200"
+                        />
+                      </div>
+                    )}
+                    
                     <p className="mt-3 text-gray-600 line-clamp-2">{order.description}</p>
                     
                     <div className="mt-4 flex flex-wrap gap-3 text-sm">
@@ -338,6 +362,13 @@ const SellerProfile = () => {
                         <FaCalendarAlt className="mr-2 opacity-70" />
                         {formatDate(order.timestamp)}
                       </div>
+                      
+                      {order.place && (
+                        <div className="flex items-center text-gray-500">
+                          <FaMapMarkerAlt className="mr-2 opacity-70" />
+                          {order.place}
+                        </div>
+                      )}
                       
                       {order.price && (
                         <div className="flex items-center font-medium text-green-600">
@@ -439,18 +470,135 @@ const SellerProfile = () => {
               </div>
               
               <div className="p-5 space-y-4">
-                <DetailRow icon={<FaUser className="text-blue-500" />} label="Customer" value={selectedOrder.username || 'Unknown'} />
-                <DetailRow icon={<MdDescription className="text-blue-500" />} label="Description" value={selectedOrder.description || 'No description'} />
-                <DetailRow icon={<FaCalendarAlt className="text-blue-500" />} label="Order Date" value={formatDate(selectedOrder.timestamp)} />
+                {/* Order ID */}
+                <DetailRow 
+                  icon={<FaInfoCircle className="text-blue-500" />} 
+                  label="Order ID" 
+                  value={selectedOrder.id || 'N/A'}
+                />
                 
+                {/* Customer Info */}
+                <DetailRow 
+                  icon={<FaUser className="text-blue-500" />} 
+                  label="Customer" 
+                  value={
+                    <div>
+                      <p>{selectedOrder.username || 'Unknown'}</p>
+                      {selectedOrder.userPhone && (
+                        <a 
+                          href={`tel:${selectedOrder.userPhone}`} 
+                          className="text-blue-600 hover:underline flex items-center mt-1"
+                        >
+                          <FaPhone className="mr-2" /> {selectedOrder.userPhone}
+                        </a>
+                      )}
+                    </div>
+                  } 
+                />
+                
+                {/* Description */}
+                <DetailRow 
+                  icon={<MdDescription className="text-blue-500" />} 
+                  label="Description" 
+                  value={selectedOrder.description || 'No description'} 
+                />
+                
+                {/* Images */}
+                {selectedOrder.images && selectedOrder.images.length > 0 && (
+                  <div className="flex items-start">
+                    <div className="mt-1 mr-3 flex-shrink-0">
+                      <FaImage className="text-blue-500" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-500">Images</p>
+                      <div className="mt-2 grid grid-cols-2 gap-2">
+                        {selectedOrder.images.map((img, index) => (
+                          <a 
+                            key={index} 
+                            href={img} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="rounded-lg overflow-hidden border border-gray-200"
+                          >
+                            <img 
+                              src={img} 
+                              alt={`Order ${index + 1}`}
+                              className="w-full h-24 object-cover"
+                            />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Location */}
+                {selectedOrder.place && (
+                  <DetailRow 
+                    icon={<FaMapMarkerAlt className="text-blue-500" />} 
+                    label="Location" 
+                    value={selectedOrder.place}
+                  />
+                )}
+                
+                {/* Seller Service */}
+                {selectedOrder.sellerService && (
+                  <DetailRow 
+                    icon={<FaBriefcase className="text-blue-500" />} 
+                    label="Service" 
+                    value={selectedOrder.sellerService}
+                  />
+                )}
+                
+                {/* Telephone */}
+                {selectedOrder.telephone && (
+                  <DetailRow 
+                    icon={<FaPhone className="text-blue-500" />} 
+                    label="Contact Number" 
+                    value={
+                      <a 
+                        href={`tel:${selectedOrder.telephone}`} 
+                        className="text-blue-600 hover:underline"
+                      >
+                        {selectedOrder.telephone}
+                      </a>
+                    }
+                  />
+                )}
+                
+                {/* Timestamps */}
+                <div className="grid grid-cols-2 gap-4">
+                  <DetailRow 
+                    icon={<FaCalendarAlt className="text-blue-500" />} 
+                    label="Order Date" 
+                    value={formatDate(selectedOrder.timestamp)} 
+                  />
+                  <DetailRow 
+                    icon={<FaHistory className="text-blue-500" />} 
+                    label="Last Updated" 
+                    value={formatDate(selectedOrder.lastUpdated || selectedOrder.timestamp)} 
+                  />
+                </div>
+                
+                {/* Price */}
                 {selectedOrder.price && (
-                  <DetailRow icon={<FaMoneyBillWave className="text-blue-500" />} label="Price" value={`₹${selectedOrder.price.toLocaleString()}`} />
+                  <DetailRow 
+                    icon={<FaMoneyBillWave className="text-blue-500" />} 
+                    label="Price" 
+                    value={`₹${selectedOrder.price.toLocaleString()}`} 
+                  />
                 )}
                 
+                {/* Payment Method */}
                 {selectedOrder.paymentMethod && (
-                  <DetailRow icon={<MdPayment className="text-blue-500" />} label="Payment Method" value={selectedOrder.paymentMethod} />
+                  <DetailRow 
+                    icon={<MdPayment className="text-blue-500" />} 
+                    label="Payment Method" 
+                    value={selectedOrder.paymentMethod} 
+                  />
                 )}
                 
+                {/* Status */}
                 <DetailRow 
                   icon={<FaInfoCircle className="text-blue-500" />} 
                   label="Status" 
@@ -466,6 +614,7 @@ const SellerProfile = () => {
                   } 
                 />
                 
+                {/* Customer Notes */}
                 {selectedOrder.customerNotes && (
                   <div className="mt-4 bg-gray-50 p-4 rounded-lg border border-gray-100">
                     <h4 className="font-medium text-gray-700 mb-2 flex items-center gap-2">
