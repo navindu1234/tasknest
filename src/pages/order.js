@@ -48,15 +48,12 @@ const Order = () => {
   const [rating, setRating] = useState(0);
   const [reviewText, setReviewText] = useState("");
 
-  // Theme colors matching login.js
+  // Theme colors
   const primaryColor = "bg-gradient-to-br from-green-500 to-green-700";
   const buttonColor = "bg-green-600 hover:bg-green-700";
   const buttonDisabledColor = "bg-green-500";
   const inputFocusColor = "focus:ring-2 focus:ring-green-500";
   const borderColor = "border-green-400";
-  const textColor = "text-white";
-  const textDarkColor = "text-gray-800";
-  const errorColor = "bg-red-100 text-red-700";
   const cardColor = "bg-white bg-opacity-95";
 
   useEffect(() => {
@@ -68,7 +65,6 @@ const Order = () => {
         if (docSnap.exists()) {
           let sellerData = { id: sellerId, ...docSnap.data() };
           
-          // Fetch profile image if exists
           if (sellerData.profileImage) {
             try {
               const imageUrl = await getDownloadURL(ref(storage, sellerData.profileImage));
@@ -115,9 +111,9 @@ const Order = () => {
     try {
       const q = query(
         collection(db, 'reviews'),
-        where("sellerId", "==", sellerId),
-        orderBy("timestamp", "desc"),
-        limit(5)
+        where("sellerName", "==", sellerName),
+        // orderBy("timestamp", "desc"),
+        limit(10)
       );
       const querySnapshot = await getDocs(q);
       const reviewsData = querySnapshot.docs.map((doc) => ({
@@ -377,55 +373,57 @@ const Order = () => {
     );
   };
 
-  const renderReviewCard = (review) => {
+  const renderReviewTile = (review) => {
     const reviewDate = review.timestamp?.toDate ? review.timestamp.toDate() : new Date();
     
     return (
       <motion.div 
         key={review.id}
-        className="mb-6 p-6 rounded-xl shadow-md border-l-4 border-green-500 bg-white"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+        className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.3 }}
       >
-        <div className="flex justify-between items-start mb-2">
-          <h4 className="font-bold text-gray-800">{review.username || "Anonymous"}</h4>
-          <span className="text-sm text-gray-500">{format(reviewDate, "MMM dd, yyyy")}</span>
-        </div>
-        <Rating
-          value={review.rating}
-          precision={0.5}
-          readOnly
-          icon={<StarIcon className="text-green-500" fontSize="inherit" />}
-          emptyIcon={<StarIcon className="text-gray-300" fontSize="inherit" />}
-        />
-        <p className="mt-2 mb-4 text-gray-800">{review.review}</p>
-        
-        {review.images?.length > 0 && (
-          <>
-            <div className="border-t border-gray-200 my-4"></div>
-            <p className="text-sm font-medium text-gray-600 mb-2">Photos:</p>
-            <div className="flex gap-3 overflow-x-auto">
-              {review.images.map((img, idx) => (
-                <img
-                  key={idx}
-                  src={img}
-                  className="w-20 h-20 rounded-lg object-cover cursor-pointer hover:scale-105 transition-transform border border-green-200"
-                  onClick={() => window.open(img, "_blank")}
-                  alt="Review"
-                />
-              ))}
+        <div className="p-4">
+          <div className="flex justify-between items-start mb-3">
+            <div>
+              <h4 className="font-bold text-gray-800">{review.username || "Anonymous"}</h4>
+              <span className="text-xs text-gray-500">{format(reviewDate, "MMM dd, yyyy")}</span>
             </div>
-          </>
-        )}
-        
-        {review.service && (
-          <div className="mt-4">
-            <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
-              Service: {review.service}
-            </span>
+            <Rating
+              value={review.rating}
+              precision={0.5}
+              readOnly
+              size="small"
+              icon={<StarIcon className="text-green-500" fontSize="inherit" />}
+              emptyIcon={<StarIcon className="text-gray-300" fontSize="inherit" />}
+            />
           </div>
-        )}
+          
+          <p className="text-gray-700 text-sm mb-4 line-clamp-3">{review.review}</p>
+          
+          {review.service && (
+            <span className="inline-block px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 mb-3">
+              {review.service}
+            </span>
+          )}
+          
+          {review.images?.length > 0 && (
+            <div className="mt-3">
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                {review.images.map((img, idx) => (
+                  <img
+                    key={idx}
+                    src={img}
+                    className="w-16 h-16 rounded object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={() => window.open(img, "_blank")}
+                    alt="Review"
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </motion.div>
     );
   };
@@ -444,7 +442,7 @@ const Order = () => {
 
   return (
     <div className={`min-h-screen ${primaryColor} pb-8 pt-4`}>
-      <div className="max-w-4xl mx-auto px-4">
+      <div className="max-w-6xl mx-auto px-4">
         {/* Header */}
         <motion.div 
           className="bg-gradient-to-r from-green-500 to-green-700 text-white py-4 px-6 rounded-xl mb-6 shadow-lg border border-green-400"
@@ -463,394 +461,392 @@ const Order = () => {
           </div>
         </motion.div>
 
-        {/* Seller Profile Card */}
-        <motion.div 
-          className={`${cardColor} rounded-xl shadow-lg mb-6 border-4 ${borderColor}`}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.1 }}
-        >
-          <div className="p-6">
-            <div className="flex flex-col sm:flex-row items-center mb-6">
-              <img 
-                src={seller.profileImage} 
-                alt={seller.name}
-                className="w-24 h-24 rounded-full border-4 border-green-400 object-cover mb-4 sm:mb-0"
-              />
-              <div className="sm:ml-6 text-center sm:text-left">
-                <h2 className="text-xl font-bold text-gray-800">{seller.name || "No Name"}</h2>
-                <div className="flex items-center justify-center sm:justify-start mt-1">
-                  <Rating
-                    value={seller.rating || 0}
-                    precision={0.5}
-                    readOnly
-                    size="small"
-                    icon={<StarIcon className="text-green-500" fontSize="inherit" />}
-                    emptyIcon={<StarIcon className="text-gray-300" fontSize="inherit" />}
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Seller Info */}
+          <div className="lg:col-span-1">
+            <motion.div 
+              className={`${cardColor} rounded-xl shadow-lg border-4 ${borderColor} sticky top-4`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.1 }}
+            >
+              <div className="p-6">
+                <div className="flex flex-col items-center mb-6">
+                  <img 
+                    src={seller.profileImage} 
+                    alt={seller.name}
+                    className="w-32 h-32 rounded-full border-4 border-green-400 object-cover mb-4"
                   />
-                  <span className="text-sm text-gray-700 ml-1">({seller.reviewsCount || 0} reviews)</span>
+                  <div className="text-center">
+                    <h2 className="text-xl font-bold text-gray-800">{seller.name || "No Name"}</h2>
+                    <div className="flex items-center justify-center mt-1">
+                      <Rating
+                        value={seller.rating || 0}
+                        precision={0.5}
+                        readOnly
+                        size="small"
+                        icon={<StarIcon className="text-green-500" fontSize="inherit" />}
+                        emptyIcon={<StarIcon className="text-gray-300" fontSize="inherit" />}
+                      />
+                      <span className="text-sm text-gray-700 ml-1">({seller.reviewsCount || 0})</span>
+                    </div>
+                    {seller.serviceDescription && (
+                      <span className="inline-block mt-2 px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-800">
+                        {seller.serviceDescription}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                {seller.serviceDescription && (
-                  <span className="inline-block mt-2 px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-800">
-                    {seller.serviceDescription}
+
+                <div className="border-t border-green-200 my-4"></div>
+
+                {/* Seller Details */}
+                <div className="space-y-3">
+                  {seller.city && (
+                    <div className="flex items-center">
+                      <FaMapMarkerAlt className="text-green-500 mr-2" />
+                      <span className="text-sm text-gray-800"><strong>City:</strong> {seller.city}</span>
+                    </div>
+                  )}
+                  {seller.address && (
+                    <div className="flex items-center">
+                      <FaMapMarkerAlt className="text-green-500 mr-2" />
+                      <span className="text-sm text-gray-800"><strong>Address:</strong> {seller.address}</span>
+                    </div>
+                  )}
+                  {seller.preferredLocation && (
+                    <div className="flex items-center">
+                      <FaMapMarkerAlt className="text-green-500 mr-2" />
+                      <span className="text-sm text-gray-800"><strong>Preferred Location:</strong> {seller.preferredLocation}</span>
+                    </div>
+                  )}
+                  {seller.workType && (
+                    <div className="flex items-center">
+                      <FaShoppingBag className="text-green-500 mr-2" />
+                      <span className="text-sm text-gray-800"><strong>Work Type:</strong> {seller.workType}</span>
+                    </div>
+                  )}
+                  {seller.experience && (
+                    <div className="flex items-center">
+                      <FaShoppingBag className="text-green-500 mr-2" />
+                      <span className="text-sm text-gray-800"><strong>Experience:</strong> {seller.experience}</span>
+                    </div>
+                  )}
+                </div>
+
+                {seller.hasCertifications === 'Yes' && seller.certificationImage && (
+                  <div className="mt-6">
+                    <p className="text-sm font-medium text-gray-800 mb-2">Certifications:</p>
+                    <img
+                      src={seller.certificationImage}
+                      className="max-h-40 max-w-full rounded-lg cursor-pointer border-2 border-green-400 hover:opacity-90"
+                      onClick={() => window.open(seller.certificationImage, "_blank")}
+                      alt="Certification"
+                    />
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+
+          {/* Right Column - Forms and Reviews */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Order Form */}
+            <motion.div 
+              className={`${cardColor} rounded-xl shadow-lg border-4 ${borderColor}`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+            >
+              <div className="p-6">
+                <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                  <FaShoppingBag className="text-green-500 mr-2" />
+                  Place Your Order
+                </h2>
+                
+                <form className="mt-4 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-gray-700 mb-2">Order Name</label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <FaShoppingBag className="text-green-500" />
+                        </div>
+                        <input
+                          type="text"
+                          className={`w-full pl-10 pr-4 py-2 border rounded-lg ${inputFocusColor}`}
+                          value={orderName}
+                          onChange={(e) => setOrderName(e.target.value)}
+                          required
+                          placeholder="Order name"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-gray-700 mb-2">Telephone Number</label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <FaPhone className="text-green-500" />
+                        </div>
+                        <input
+                          type="tel"
+                          className={`w-full pl-10 pr-4 py-2 border rounded-lg ${inputFocusColor}`}
+                          value={telephone}
+                          onChange={(e) => setTelephone(e.target.value)}
+                          required
+                          placeholder="Phone number"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 mb-2">Order Description</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 pt-3 flex items-start pointer-events-none">
+                        <FaComment className="text-green-500" />
+                      </div>
+                      <textarea
+                        className={`w-full pl-10 pr-4 py-2 border rounded-lg ${inputFocusColor} h-32`}
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        required
+                        placeholder="Describe your order in detail"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 mb-2">Service Address</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <FaMapMarkerAlt className="text-green-500" />
+                      </div>
+                      <input
+                        type="text"
+                        className={`w-full pl-10 pr-4 py-2 border rounded-lg ${inputFocusColor}`}
+                        value={place}
+                        onChange={(e) => setPlace(e.target.value)}
+                        required
+                        placeholder="Where the service will be performed"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 mb-2 flex items-center">
+                      <FaClock className="text-green-500 mr-2" />
+                      Select Date & Time
+                    </label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <FaCalendarAlt className="text-green-500" />
+                          </div>
+                          <input
+                            type="date"
+                            className={`w-full pl-10 pr-4 py-2 border rounded-lg ${inputFocusColor}`}
+                            value={selectedDate ? selectedDate.toISOString().split('T')[0] : ''}
+                            onChange={(e) => setSelectedDate(new Date(e.target.value))}
+                            min={new Date().toISOString().split('T')[0]}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <FaClock className="text-green-500" />
+                          </div>
+                          <input
+                            type="time"
+                            className={`w-full pl-10 pr-4 py-2 border rounded-lg ${inputFocusColor}`}
+                            value={selectedTime ? `${String(selectedTime.getHours()).padStart(2, '0')}:${String(selectedTime.getMinutes()).padStart(2, '0')}` : ''}
+                            onChange={(e) => {
+                              const [hours, minutes] = e.target.value.split(':');
+                              const time = new Date();
+                              time.setHours(parseInt(hours, 10));
+                              time.setMinutes(parseInt(minutes, 10));
+                              setSelectedTime(time);
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-2">
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <FaClock className="text-green-500" />
+                        </div>
+                        <input
+                          type="text"
+                          className={`w-full pl-10 pr-4 py-2 border rounded-lg bg-gray-50`}
+                          value={formattedDateTime}
+                          readOnly
+                          placeholder="Selected date and time will appear here"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 mb-2 flex items-center">
+                      <FaImage className="text-green-500 mr-2" />
+                      Add Order Photos (Optional - Max 5)
+                    </label>
+                    {orderImages.length > 0 && renderImagePreview(orderImages, true)}
+                    <label className={`inline-flex items-center mt-2 px-4 py-2 rounded-lg border ${orderImages.length >= 5 ? 'border-gray-300 text-gray-400 cursor-not-allowed' : 'border-green-500 text-green-600 hover:bg-green-50 cursor-pointer'} transition-colors`}>
+                      <FaImage className="mr-2" />
+                      Upload Photos ({orderImages.length}/5)
+                      <input
+                        type="file"
+                        className="hidden"
+                        multiple
+                        accept="image/*"
+                        onChange={(e) => handleImageUpload(e.target.files, true)}
+                        disabled={orderImages.length >= 5}
+                      />
+                    </label>
+                  </div>
+
+                  <button
+                    type="button"
+                    className={`w-full mt-4 ${loading ? buttonDisabledColor : buttonColor} text-white py-3 rounded-lg transition duration-300 flex items-center justify-center font-bold`}
+                    onClick={submitOrder}
+                    disabled={loading || !orderName || !telephone || !description || !place || !formattedDateTime}
+                  >
+                    {loading ? (
+                      <>
+                        <FaSpinner className="animate-spin mr-2" />
+                        Submitting...
+                      </>
+                    ) : (
+                      "Submit Order"
+                    )}
+                  </button>
+                </form>
+              </div>
+            </motion.div>
+
+            {/* Review Form */}
+            <motion.div 
+              className={`${cardColor} rounded-xl shadow-lg border-4 ${borderColor}`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+            >
+              <div className="p-6">
+                <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                  <FaStar className="text-green-500 mr-2" />
+                  Leave a Review
+                </h2>
+                
+                <form className="mt-4 space-y-4">
+                  <div>
+                    <label className="block text-gray-700 mb-2">Your Rating</label>
+                    <Rating
+                      value={rating}
+                      precision={0.5}
+                      onChange={(e, newValue) => setRating(newValue)}
+                      icon={<StarIcon className="text-green-500" fontSize="large" />}
+                      emptyIcon={<StarIcon className="text-gray-300" fontSize="large" />}
+                      size="large"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 mb-2">Your Review</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 pt-3 flex items-start pointer-events-none">
+                        <FaComment className="text-green-500" />
+                      </div>
+                      <textarea
+                        className={`w-full pl-10 pr-4 py-2 border rounded-lg ${inputFocusColor} h-32`}
+                        value={reviewText}
+                        onChange={(e) => setReviewText(e.target.value)}
+                        required
+                        placeholder="Share your experience with this seller"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 mb-2 flex items-center">
+                      <FaImage className="text-green-500 mr-2" />
+                      Add Photos (Optional - Max 5)
+                    </label>
+                    {reviewImages.length > 0 && renderImagePreview(reviewImages, false)}
+                    <label className={`inline-flex items-center mt-2 px-4 py-2 rounded-lg border ${reviewImages.length >= 5 ? 'border-gray-300 text-gray-400 cursor-not-allowed' : 'border-green-500 text-green-600 hover:bg-green-50 cursor-pointer'} transition-colors`}>
+                      <FaImage className="mr-2" />
+                      Upload Photos ({reviewImages.length}/5)
+                      <input
+                        type="file"
+                        className="hidden"
+                        multiple
+                        accept="image/*"
+                        onChange={(e) => handleImageUpload(e.target.files, false)}
+                        disabled={reviewImages.length >= 5}
+                      />
+                    </label>
+                  </div>
+
+                  <button
+                    type="button"
+                    className={`w-full mt-4 ${reviewLoading ? buttonDisabledColor : buttonColor} text-white py-3 rounded-lg transition duration-300 flex items-center justify-center font-bold`}
+                    onClick={submitReview}
+                    disabled={reviewLoading || !rating || !reviewText}
+                  >
+                    {reviewLoading ? (
+                      <>
+                        <FaSpinner className="animate-spin mr-2" />
+                        Submitting...
+                      </>
+                    ) : (
+                      "Submit Review"
+                    )}
+                  </button>
+                </form>
+              </div>
+            </motion.div>
+
+            {/* Reviews Section */}
+            <motion.div 
+              className={`${cardColor} rounded-xl shadow-lg border-4 ${borderColor}`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
+            >
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-bold text-gray-800 flex items-center">
+                    <FaComment className="text-green-500 mr-2" />
+                    Customer Reviews
+                  </h2>
+                  <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+                    {reviews.length} reviews
                   </span>
-                )}
+                </div>
+                
+                <p className="text-gray-700 mb-4">What others say about {seller.name}</p>
+                
+                <div className="border-t border-green-200 my-4"></div>
+                
+                <div className="mt-4">
+                  {reviews.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {reviews.map(renderReviewTile)}
+                    </div>
+                  ) : (
+                    <div className="p-6 text-center bg-green-50 rounded-lg border border-green-200">
+                      <p className="text-gray-800">No reviews yet. Be the first to review!</p>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-
-            <div className="border-t border-green-200 my-4"></div>
-
-            {/* Seller Details */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {seller.city && (
-                <div className="flex items-center">
-                  <FaMapMarkerAlt className="text-green-500 mr-2" />
-                  <span className="text-sm text-gray-800"><strong>City:</strong> {seller.city}</span>
-                </div>
-              )}
-              {seller.address && (
-                <div className="flex items-center">
-                  <FaMapMarkerAlt className="text-green-500 mr-2" />
-                  <span className="text-sm text-gray-800"><strong>Address:</strong> {seller.address}</span>
-                </div>
-              )}
-              {seller.preferredLocation && (
-                <div className="flex items-center">
-                  <FaMapMarkerAlt className="text-green-500 mr-2" />
-                  <span className="text-sm text-gray-800"><strong>Preferred Location:</strong> {seller.preferredLocation}</span>
-                </div>
-              )}
-              {seller.workType && (
-                <div className="flex items-center">
-                  <FaShoppingBag className="text-green-500 mr-2" />
-                  <span className="text-sm text-gray-800"><strong>Work Type:</strong> {seller.workType}</span>
-                </div>
-              )}
-              {seller.experience && (
-                <div className="flex items-center">
-                  <FaShoppingBag className="text-green-500 mr-2" />
-                  <span className="text-sm text-gray-800"><strong>Experience:</strong> {seller.experience}</span>
-                </div>
-              )}
-              {seller.education && (
-                <div className="flex items-center">
-                  <FaShoppingBag className="text-green-500 mr-2" />
-                  <span className="text-sm text-gray-800"><strong>Education:</strong> {seller.education}</span>
-                </div>
-              )}
-              {seller.age && (
-                <div className="flex items-center">
-                  <FaShoppingBag className="text-green-500 mr-2" />
-                  <span className="text-sm text-gray-800"><strong>Age:</strong> {seller.age}</span>
-                </div>
-              )}
-            </div>
-
-            {seller.hasCertifications === 'Yes' && seller.certificationImage && (
-              <div className="mt-6">
-                <p className="text-sm font-medium text-gray-800 mb-2">Certifications:</p>
-                <img
-                  src={seller.certificationImage}
-                  className="max-h-40 max-w-full rounded-lg cursor-pointer border-2 border-green-400 hover:opacity-90"
-                  onClick={() => window.open(seller.certificationImage, "_blank")}
-                  alt="Certification"
-                />
-              </div>
-            )}
+            </motion.div>
           </div>
-        </motion.div>
-
-        {/* Order Form */}
-        <motion.div 
-          className={`${cardColor} rounded-xl shadow-lg mb-6 border-4 ${borderColor}`}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-        >
-          <div className="p-6">
-            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-              <FaShoppingBag className="text-green-500 mr-2" />
-              Place Your Order
-            </h2>
-            
-            <form className="mt-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-gray-700 mb-2">Order Name</label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <FaShoppingBag className="text-green-500" />
-                    </div>
-                    <input
-                      type="text"
-                      className={`w-full pl-10 pr-4 py-3 border rounded-lg ${inputFocusColor}`}
-                      value={orderName}
-                      onChange={(e) => setOrderName(e.target.value)}
-                      required
-                      placeholder="Order name"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-gray-700 mb-2">Telephone Number</label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <FaPhone className="text-green-500" />
-                    </div>
-                    <input
-                      type="tel"
-                      className={`w-full pl-10 pr-4 py-3 border rounded-lg ${inputFocusColor}`}
-                      value={telephone}
-                      onChange={(e) => setTelephone(e.target.value)}
-                      required
-                      placeholder="Phone number"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-4">
-                <label className="block text-gray-700 mb-2">Order Description</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 pt-3 flex items-start pointer-events-none">
-                    <FaComment className="text-green-500" />
-                  </div>
-                  <textarea
-                    className={`w-full pl-10 pr-4 py-3 border rounded-lg ${inputFocusColor} h-32`}
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    required
-                    placeholder="Describe your order in detail"
-                  />
-                </div>
-              </div>
-
-              <div className="mt-4">
-                <label className="block text-gray-700 mb-2">Service Address</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <FaMapMarkerAlt className="text-green-500" />
-                  </div>
-                  <input
-                    type="text"
-                    className={`w-full pl-10 pr-4 py-3 border rounded-lg ${inputFocusColor}`}
-                    value={place}
-                    onChange={(e) => setPlace(e.target.value)}
-                    required
-                    placeholder="Where the service will be performed"
-                  />
-                </div>
-              </div>
-
-              <div className="mt-4">
-                <label className="block text-gray-700 mb-2 flex items-center">
-                  <FaClock className="text-green-500 mr-2" />
-                  Select Date & Time
-                </label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <FaCalendarAlt className="text-green-500" />
-                      </div>
-                      <input
-                        type="date"
-                        className={`w-full pl-10 pr-4 py-3 border rounded-lg ${inputFocusColor}`}
-                        value={selectedDate ? selectedDate.toISOString().split('T')[0] : ''}
-                        onChange={(e) => setSelectedDate(new Date(e.target.value))}
-                        min={new Date().toISOString().split('T')[0]}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <FaClock className="text-green-500" />
-                      </div>
-                      <input
-                        type="time"
-                        className={`w-full pl-10 pr-4 py-3 border rounded-lg ${inputFocusColor}`}
-                        value={selectedTime ? `${String(selectedTime.getHours()).padStart(2, '0')}:${String(selectedTime.getMinutes()).padStart(2, '0')}` : ''}
-                        onChange={(e) => {
-                          const [hours, minutes] = e.target.value.split(':');
-                          const time = new Date();
-                          time.setHours(parseInt(hours, 10));
-                          time.setMinutes(parseInt(minutes, 10));
-                          setSelectedTime(time);
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-2">
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <FaClock className="text-green-500" />
-                    </div>
-                    <input
-                      type="text"
-                      className={`w-full pl-10 pr-4 py-3 border rounded-lg bg-gray-50`}
-                      value={formattedDateTime}
-                      readOnly
-                      placeholder="Selected date and time will appear here"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-4">
-                <label className="block text-gray-700 mb-2 flex items-center">
-                  <FaImage className="text-green-500 mr-2" />
-                  Add Order Photos (Optional - Max 5)
-                </label>
-                {orderImages.length > 0 && renderImagePreview(orderImages, true)}
-                <label className={`inline-flex items-center mt-2 px-4 py-2 rounded-lg border ${orderImages.length >= 5 ? 'border-gray-300 text-gray-400 cursor-not-allowed' : 'border-green-500 text-green-600 hover:bg-green-50 cursor-pointer'} transition-colors`}>
-                  <FaImage className="mr-2" />
-                  Upload Photos ({orderImages.length}/5)
-                  <input
-                    type="file"
-                    className="hidden"
-                    multiple
-                    accept="image/*"
-                    onChange={(e) => handleImageUpload(e.target.files, true)}
-                    disabled={orderImages.length >= 5}
-                  />
-                </label>
-              </div>
-
-              <button
-                type="button"
-                className={`w-full mt-6 ${loading ? buttonDisabledColor : buttonColor} text-white py-3 rounded-lg transition duration-300 flex items-center justify-center font-bold text-lg`}
-                onClick={submitOrder}
-                disabled={loading || !orderName || !telephone || !description || !place || !formattedDateTime}
-              >
-                {loading ? (
-                  <>
-                    <FaSpinner className="animate-spin mr-2" />
-                    Submitting...
-                  </>
-                ) : (
-                  "Submit Order"
-                )}
-              </button>
-            </form>
-          </div>
-        </motion.div>
-
-        {/* Review Form */}
-        <motion.div 
-          className={`${cardColor} rounded-xl shadow-lg mb-6 border-4 ${borderColor}`}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-        >
-          <div className="p-6">
-            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-              <FaStar className="text-green-500 mr-2" />
-              Leave a Review
-            </h2>
-            
-            <form className="mt-4">
-              <div className="mb-4">
-                <label className="block text-gray-700 mb-2">Your Rating</label>
-                <Rating
-                  value={rating}
-                  precision={0.5}
-                  onChange={(e, newValue) => setRating(newValue)}
-                  icon={<StarIcon className="text-green-500" fontSize="large" />}
-                  emptyIcon={<StarIcon className="text-gray-300" fontSize="large" />}
-                  size="large"
-                />
-              </div>
-
-              <div className="mt-4">
-                <label className="block text-gray-700 mb-2">Your Review</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 pt-3 flex items-start pointer-events-none">
-                    <FaComment className="text-green-500" />
-                  </div>
-                  <textarea
-                    className={`w-full pl-10 pr-4 py-3 border rounded-lg ${inputFocusColor} h-32`}
-                    value={reviewText}
-                    onChange={(e) => setReviewText(e.target.value)}
-                    required
-                    placeholder="Share your experience with this seller"
-                  />
-                </div>
-              </div>
-
-              <div className="mt-4">
-                <label className="block text-gray-700 mb-2 flex items-center">
-                  <FaImage className="text-green-500 mr-2" />
-                  Add Photos (Optional - Max 5)
-                </label>
-                {reviewImages.length > 0 && renderImagePreview(reviewImages, false)}
-                <label className={`inline-flex items-center mt-2 px-4 py-2 rounded-lg border ${reviewImages.length >= 5 ? 'border-gray-300 text-gray-400 cursor-not-allowed' : 'border-green-500 text-green-600 hover:bg-green-50 cursor-pointer'} transition-colors`}>
-                  <FaImage className="mr-2" />
-                  Upload Photos ({reviewImages.length}/5)
-                  <input
-                    type="file"
-                    className="hidden"
-                    multiple
-                    accept="image/*"
-                    onChange={(e) => handleImageUpload(e.target.files, false)}
-                    disabled={reviewImages.length >= 5}
-                  />
-                </label>
-              </div>
-
-              <button
-                type="button"
-                className={`w-full mt-6 ${reviewLoading ? buttonDisabledColor : buttonColor} text-white py-3 rounded-lg transition duration-300 flex items-center justify-center font-bold text-lg`}
-                onClick={submitReview}
-                disabled={reviewLoading || !rating || !reviewText}
-              >
-                {reviewLoading ? (
-                  <>
-                    <FaSpinner className="animate-spin mr-2" />
-                    Submitting...
-                  </>
-                ) : (
-                  "Submit Review"
-                )}
-              </button>
-            </form>
-          </div>
-        </motion.div>
-
-        {/* Reviews Section */}
-        <motion.div 
-          className={`${cardColor} rounded-xl shadow-lg border-4 ${borderColor}`}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-        >
-          <div className="p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-gray-800 flex items-center">
-                <FaComment className="text-green-500 mr-2" />
-                Customer Reviews
-              </h2>
-              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
-                Latest {reviews.length} reviews
-              </span>
-            </div>
-            
-            <p className="text-gray-700 mb-4">What others say about {seller.name}</p>
-            
-            <div className="border-t border-green-200 my-4"></div>
-            
-            <div className="mt-4">
-              {reviews.length > 0 ? (
-                reviews.map(renderReviewCard)
-              ) : (
-                <div className="p-6 text-center bg-green-50 rounded-lg border border-green-200">
-                  <p className="text-gray-800">No reviews yet. Be the first to review!</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </motion.div>
+        </div>
       </div>
 
       {/* Snackbar */}

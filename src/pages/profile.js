@@ -46,9 +46,9 @@ function Profile() {
   const [activeServiceProviders, setActiveServiceProviders] = useState([
     { id: 1, name: "Home Cleaning", count: 243 },
     { id: 2, name: "Gardening", count: 189 },
-    { id: 3, name: "IT Support", count: 156 },
-    { id: 4, name: "Tutoring", count: 132 },
-    { id: 5, name: "Personal Training", count: 98 }
+    { id: 3, name: "cooking", count: 156 },
+    { id: 4, name: "Electriacian", count: 132 },
+    { id: 5, name: "House renovations", count: 98 }
   ]);
 
   useEffect(() => {
@@ -174,54 +174,54 @@ function Profile() {
 
       <Navbar />
 
-      {/* Service Providers Left Sidebar */}
-      <div className="hidden lg:block fixed left-0 top-1/2 transform -translate-y-1/2 w-48 bg-white/10 backdrop-blur-md rounded-r-xl p-4 shadow-lg z-10">
-        <h3 className="text-white font-bold mb-4 text-center">Active Services</h3>
-        <ul className="space-y-3">
-          {activeServiceProviders.map((service) => (
-            <li key={service.id} className="bg-white/20 p-2 rounded-lg text-white text-sm hover:bg-white/30 transition cursor-pointer">
-              <div className="flex justify-between items-center">
-                <span>{service.name}</span>
-                <span className="bg-green-500 text-xs px-2 py-1 rounded-full">{service.count}+</span>
-              </div>
-            </li>
-          ))}
-        </ul>
-        <div className="mt-4 text-center text-white text-xs">
-          <p>1000+ Service Providers Online</p>
+     {/* Service Providers Left Sidebar - Made wider */}
+<div className="hidden lg:block fixed left-0 top-1/2 transform -translate-y-1/2 w-72 bg-white/10 backdrop-blur-md rounded-r-xl p-5 shadow-lg z-10">
+  <h3 className="text-white font-bold mb-4 text-center">Active Services</h3>
+  <ul className="space-y-3">
+    {activeServiceProviders.map((service) => (
+      <li key={service.id} className="bg-white/20 p-3 rounded-lg text-white text-sm hover:bg-white/30 transition cursor-pointer">
+        <div className="flex justify-between items-center">
+          <span>{service.name}</span>
+          <span className="bg-green-500 text-xs px-2 py-1 rounded-full">{service.count}+</span>
         </div>
-      </div>
+      </li>
+    ))}
+  </ul>
+  <div className="mt-4 text-center text-white text-xs">
+    <p>1000+ Service Providers Online</p>
+  </div>
+</div>
 
-      {/* Service Providers Right Sidebar */}
-      <div className="hidden lg:block fixed right-0 top-1/2 transform -translate-y-1/2 w-480 bg-white/10 backdrop-blur-md rounded-l-xl p-25 shadow-lg z-10">
-        <h3 className="text-white font-bold mb-4000 text-center">Trending Now</h3>
-        <div className="space-y-30">
-          <div className="bg-white/20 p-2 rounded-lg text-white text-sm">
-            <div className="flex items-center">
-              <span className="bg-yellow-400 text-yellow-900 px-10 rounded mr-2 text-xs">HOT</span>
-              <span>Smart Home Setup</span>
-            </div>
-            <div className="text-xs mt-1">87 providers</div>
-          </div>
-          <div className="bg-white/20 p-2 rounded-lg text-white text-sm">
-            <div className="flex items-center">
-              <span className="bg-blue-400 text-blue-900 px-1 rounded mr-2 text-xs">NEW</span>
-              <span>EV Charger Install</span>
-            </div>
-            <div className="text-xs mt-1">42 providers</div>
-          </div>
-          <div className="bg-white/20 p-2 rounded-lg text-white text-sm">
-            <div className="flex items-center">
-              <span className="bg-green-400 text-green-900 px-1 rounded mr-2 text-xs">POP</span>
-              <span>Pet Sitting</span>
-            </div>
-            <div className="text-xs mt-1">156 providers</div>
-          </div>
-        </div>
-        <div className="mt-4 text-center text-white text-xs">
-          <p>New services added daily</p>
-        </div>
+{/* Service Providers Right Sidebar - Made wider and adjusted padding */}
+<div className="hidden lg:block fixed right-0 top-1/2 transform -translate-y-1/2 w-72 bg-white/10 backdrop-blur-md rounded-l-xl p-6 shadow-lg z-10">
+  <h3 className="text-white font-bold mb-4 text-center">Trending Now</h3>
+  <div className="space-y-4">
+    <div className="bg-white/20 p-3 rounded-lg text-white text-sm">
+      <div className="flex items-center">
+        <span className="bg-yellow-400 text-yellow-900 px-2 rounded mr-2 text-xs">HOT</span>
+        <span>Smart Home Setup</span>
       </div>
+      <div className="text-xs mt-1">87 providers</div>
+    </div>
+    <div className="bg-white/20 p-3 rounded-lg text-white text-sm">
+      <div className="flex items-center">
+        <span className="bg-blue-400 text-blue-900 px-2 rounded mr-2 text-xs">NEW</span>
+        <span>EV Charger Install</span>
+      </div>
+      <div className="text-xs mt-1">42 providers</div>
+    </div>
+    <div className="bg-white/20 p-3 rounded-lg text-white text-sm">
+      <div className="flex items-center">
+        <span className="bg-green-400 text-green-900 px-2 rounded mr-2 text-xs">POP</span>
+        <span>Pet Sitting</span>
+      </div>
+      <div className="text-xs mt-1">156 providers</div>
+    </div>
+  </div>
+  <div className="mt-4 text-center text-white text-xs">
+    <p>New services added daily</p>
+  </div>
+</div>
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto pt-6 pb-16 px-4 lg:px-8">

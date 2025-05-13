@@ -31,9 +31,9 @@ function Search() {
           let data = doc.data();
 
           // Fetch cover photo URL if it exists
-          if (data.coverPhoto) {
+          if (data.coverImage) {
             try {
-              const imageRef = ref(storage, data.coverPhoto);
+              const imageRef = ref(storage, data.coverImage);
               const imageUrl = await getDownloadURL(imageRef);
               data.coverPhoto = imageUrl;
             } catch (error) {
@@ -66,14 +66,14 @@ function Search() {
     // Apply name search filter
     if (searchTerm) {
       results = results.filter(seller =>
-        seller.name.toLowerCase().includes(searchTerm.toLowerCase())
+        seller.name?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     // Apply city filter
     if (cityFilter) {
       results = results.filter(seller =>
-        seller.city.toLowerCase().includes(cityFilter.toLowerCase())
+        seller.city?.toLowerCase() === cityFilter.toLowerCase()
       );
     }
 
@@ -95,7 +95,10 @@ function Search() {
   };
 
   // Get unique cities for filter dropdown
-  const uniqueCities = [...new Set(sellers.map(seller => seller.city))].filter(Boolean);
+  const uniqueCities = [...new Set(sellers
+    .map(seller => seller.city)
+    .filter(city => city && city.trim() !== "")
+  )].sort();
 
   return (
     <div className="bg-gradient-to-b from-green-500 to-green-800 min-h-screen text-white">
@@ -170,11 +173,11 @@ function Search() {
 
         {loading ? (
           <div className="flex justify-center items-center h-64">
-            <p className="text-center mt-4">Loading...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
           </div>
         ) : filteredSellers.length === 0 ? (
           <div className="flex justify-center items-center h-64">
-            <p className="text-center mt-4">No results found.</p>
+            <p className="text-center mt-4">No results found. Try adjusting your filters.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
@@ -186,7 +189,7 @@ function Search() {
                 {/* Seller Cover Photo */}
                 <div className="relative h-48 w-full overflow-hidden rounded-md mb-4">
                   <img
-                    src={seller.coverImage}
+                    src={seller.coverPhoto || "https://via.placeholder.com/400"}
                     alt={seller.name}
                     className="w-full h-full object-cover"
                     onError={(e) => {
@@ -208,13 +211,13 @@ function Search() {
 
                 {/* Category */}
                 <p className="text-green-700 font-semibold mt-1">
-                  Category: {seller.category}
+                  {seller.category}
                 </p>
 
                 {/* Seller Details */}
                 <p className="text-sm mt-1">{seller.service}</p>
-                <p className="text-sm">City: {seller.city}</p>
-                <p className="text-sm">Address: {seller.address}</p>
+                <p className="text-sm">City: {seller.city || "Not specified"}</p>
+                <p className="text-sm">Address: {seller.address || "Not specified"}</p>
 
                 {/* Order Button */}
                 <button
