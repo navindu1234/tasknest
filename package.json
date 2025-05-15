@@ -5,6 +5,7 @@
   "homepage": "https://navindu1234.github.io/tasknest",
   "dependencies": {
     "@date-io/date-fns": "^3.2.1",
+    "@emailjs/browser": "^4.4.1",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@mui/icons-material": "^7.0.2",

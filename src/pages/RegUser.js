@@ -7,6 +7,7 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { FiCamera } from "react-icons/fi";
 import { FaSpinner } from "react-icons/fa";
 import { motion } from "framer-motion";
+import emailjs from '@emailjs/browser';
 
 const categoryImages = [
   `${process.env.PUBLIC_URL}/image1.png`,
@@ -116,6 +117,27 @@ const RegUser = () => {
     }
   };
 
+  const sendWelcomeEmail = async (email, username) => {
+    try {
+      const templateParams = {
+        to_email: email,
+        username: username,
+      };
+
+      await emailjs.send(
+        'service_z43a97a', // Your EmailJS Service ID
+        'template_v54ahm3', // Your EmailJS Template ID
+        templateParams,
+        '2k9LK2DdgE8xtokeO' // Your EmailJS Public Key
+      );
+      
+      console.log('Welcome email sent successfully');
+    } catch (error) {
+      console.error('Failed to send welcome email:', error);
+      // Don't show this error to the user as it's not critical
+    }
+  };
+
   const handleRegister = async (e) => {
     e.preventDefault();
     setError("");
@@ -209,6 +231,9 @@ const RegUser = () => {
         createdAt: new Date().toISOString(),
         emailVerified: false,
       });
+
+      // Send welcome email with username
+      await sendWelcomeEmail(formData.email, formData.username);
 
       setSuccess("Registration successful! Please check your email to verify your account.");
       setTimeout(() => navigate("/login"), 4000);
