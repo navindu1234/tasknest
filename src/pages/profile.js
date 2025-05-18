@@ -175,7 +175,7 @@ function Profile() {
       <Navbar />
 
      {/* Service Providers Left Sidebar - Made wider */}
-<div className="hidden lg:block fixed left-0 top-1/2 transform -translate-y-1/2 w-72 bg-white/10 backdrop-blur-md rounded-r-xl p-5 shadow-lg z-10">
+<div className="hidden lg:block fixed left-0 top-1/2 transform -translate-y-1/2 w-36 bg-white/10 backdrop-blur-md rounded-r-xl p-5 shadow-lg z-10">
   <h3 className="text-white font-bold mb-4 text-center">Active Services</h3>
   <ul className="space-y-3">
     {activeServiceProviders.map((service) => (
@@ -193,7 +193,7 @@ function Profile() {
 </div>
 
 {/* Service Providers Right Sidebar - Made wider and adjusted padding */}
-<div className="hidden lg:block fixed right-0 top-1/2 transform -translate-y-1/2 w-72 bg-white/10 backdrop-blur-md rounded-l-xl p-6 shadow-lg z-10">
+<div className="hidden lg:block fixed right-0 top-1/2 transform -translate-y-1/2 w-36 bg-white/10 backdrop-blur-md rounded-l-xl p-6 shadow-lg z-10">
   <h3 className="text-white font-bold mb-4 text-center">Trending Now</h3>
   <div className="space-y-4">
     <div className="bg-white/20 p-3 rounded-lg text-white text-sm">
