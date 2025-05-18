@@ -3,7 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { db, storage } from '../components/firebase'; 
 import { collection, addDoc } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
-import { FaUser, FaCamera, FaFileAlt, FaMapMarkerAlt, FaGraduationCap, FaBirthdayCake, FaCity, FaBriefcase, FaAward, FaUsers } from 'react-icons/fa';
+import emailjs from 'emailjs-com';
+import { 
+  FaUser, FaCamera, FaFileAlt, FaMapMarkerAlt, FaGraduationCap, 
+  FaBirthdayCake, FaCity, FaBriefcase, FaAward, FaUsers, FaEnvelope 
+} from 'react-icons/fa';
 
 const categories = [
   'House Cleaning',
@@ -29,9 +33,13 @@ const experienceLevels = [
 const certificationOptions = ['Yes', 'No'];
 const workTypeOptions = ['Individual', 'Team'];
 
+// Initialize EmailJS
+emailjs.init('2k9LK2DdgE8xtokeO');
+
 const SellerReg = () => {
   const [formData, setFormData] = useState({
     name: '',
+    email: '',
     serviceDescription: '',
     phone: '',
     address: '',
@@ -89,17 +97,39 @@ const SellerReg = () => {
     }
   };
 
+  const sendVerificationEmail = async (email, name, uniqueCode) => {
+    try {
+      await emailjs.send('service_z43a97a', 'template_v54ahm3', {
+        to_email: email,
+        to_name: name,
+        unique_code: uniqueCode,
+        reply_to: 'gamagenimsara@gmail.com'
+      });
+      console.log('Email sent successfully');
+    } catch (error) {
+      console.error('Email sending error:', error);
+      // Even if email fails, we still proceed with registration
+    }
+  };
+
   const registerSeller = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     
-    const { name, serviceDescription, phone, address, education, age, city, 
+    const { name, email, serviceDescription, phone, address, education, age, city, 
             preferredLocation, selectedCategory, selectedExperience, 
             hasCertifications, workType } = formData;
 
-    if (!name || !serviceDescription || !phone || !address || 
+    if (!name || !email || !serviceDescription || !phone || !address || 
         !education || !age || !city || !preferredLocation) {
       alert('Please fill in all required fields');
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Basic email validation
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+      alert('Please enter a valid email address');
       setIsSubmitting(false);
       return;
     }
@@ -112,8 +142,10 @@ const SellerReg = () => {
         hasCertifications === 'Yes' ? uploadImageToStorage(certificationImage) : Promise.resolve('')
       ]);
 
+      // Save to Firestore
       await addDoc(collection(db, "services"), {
         name,
+        email,
         serviceDescription,
         phone,
         category: selectedCategory,
@@ -133,7 +165,10 @@ const SellerReg = () => {
         status: 'pending' // Add status field for admin approval
       });
 
-      alert(`Registration successful! Your unique code: ${uniqueCode}\nYour profile will be active after admin approval.`);
+      // Send email with unique code
+      await sendVerificationEmail(email, name, uniqueCode);
+
+      alert(`Registration successful! Your unique code: ${uniqueCode}\nA confirmation has been sent to your email.\nYour profile will be active after admin approval.`);
       navigate('/seller-login');
     } catch (e) {
       console.error("Error:", e);
@@ -223,6 +258,7 @@ const SellerReg = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
                 { name: 'name', icon: <FaUser className="text-blue-500" />, placeholder: 'Full Name', type: 'text' },
+                { name: 'email', icon: <FaEnvelope className="text-blue-500" />, placeholder: 'Email Address', type: 'email' },
                 { name: 'phone', icon: <FaMapMarkerAlt className="text-blue-500" />, placeholder: 'Phone Number', type: 'tel' },
                 { name: 'education', icon: <FaGraduationCap className="text-blue-500" />, placeholder: 'Education', type: 'text' },
                 { name: 'age', icon: <FaBirthdayCake className="text-blue-500" />, placeholder: 'Age', type: 'number' },

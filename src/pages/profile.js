@@ -423,7 +423,7 @@ function Profile() {
         <FaRobot size={24} />
       </button>
 
-      AI Assistant Panel
+      {/* AI Assistant Panel
       {showAIAssistant && (
         <div className="fixed bottom-24 right-6 w-80 bg-white rounded-xl shadow-2xl z-20 overflow-hidden">
           <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-3 text-white flex justify-between items-center">
@@ -465,8 +465,8 @@ function Profile() {
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </div> */}
+      {/* )} */}
     </div>
   );
 }
